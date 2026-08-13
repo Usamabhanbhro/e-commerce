@@ -1,0 +1,37 @@
+/* Usamabhanbhro Material Quiet overrides: calm commerce states, explicit demo feedback, and tactile confirmation details. */
+
+/* Material Quiet override: low-saturation imagery, oxidized-rust signals, and finished demo-commerce states. */
+.eyebrow--rust { color: var(--rust); }
+.material-image { filter: grayscale(.42) sepia(.16) saturate(.72) contrast(.96); }
+.catalog-card__media::after { background: linear-gradient(140deg, transparent 42%, rgba(166,75,49,.16)); content: ""; inset: 0; pointer-events: none; position: absolute; }
+.catalog-card__media .catalog-card__hover { z-index: 1; }
+.catalog-card__media .wishlist-button, .catalog-card__media .catalog-card__quick, .catalog-card__media .material-mark { z-index: 2; }
+.material-mark { background: var(--paper); bottom: 12px; color: var(--rust); font-size: 8px; left: 12px; letter-spacing: .14em; opacity: 0; padding: 7px 9px; position: absolute; text-transform: uppercase; transform: translateY(5px); transition: opacity .2s var(--ease), transform .2s var(--ease); }
+.catalog-card:hover .material-mark, .catalog-card:focus-within .material-mark { opacity: 1; transform: translateY(0); }
+.product-gallery { position: relative; }
+.product-gallery::before { border-left: 1px solid var(--rust); content: "OBJECT DOSSIER"; color: var(--rust); font-size: 8px; letter-spacing: .16em; left: -24px; padding-left: 8px; position: absolute; text-transform: uppercase; top: 0; transform: rotate(-90deg) translateX(-100%); transform-origin: left top; }
+.commerce-state { background: linear-gradient(180deg, var(--paper), #f1ede5); padding-top: 22px; position: relative; }
+.commerce-state__stamp { border-left: 2px solid var(--rust); color: var(--rust); font-size: 9px; letter-spacing: .16em; margin: 0 7vw; padding: 8px 0 8px 12px; text-transform: uppercase; }
+.commerce-state__stamp--rust { background: var(--rust); border-left: 0; color: #fff; display: inline-block; margin-bottom: 26px; padding: 9px 12px; }
+.commerce-state .page-intro { padding-top: 74px; }
+.confirmation-mark { border-color: var(--rust) !important; color: var(--rust) !important; }
+.confirmation-card { border-top: 2px solid var(--rust); }
+.payment-result--failed { border-left-color: var(--rust); }
+.payment-result__actions button:hover { color: var(--rust); }
+.promo-field { border-top: 1px solid var(--rule); display: grid; gap: 8px; margin-top: 24px; padding-top: 18px; }
+.promo-field label { color: var(--muted); font-size: 9px; letter-spacing: .13em; text-transform: uppercase; }
+.promo-field input { border: 1px solid var(--rule); font-size: 12px; padding: 11px 12px; width: 100%; }
+.promo-field span { color: #58714e; font-size: 10px; }
+.payment-result__actions { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 15px; }
+.payment-result__actions button { color: var(--ink); font-size: 10px; letter-spacing: .1em; text-decoration: underline; text-transform: uppercase; text-underline-offset: 4px; }
+.confirmation-items { border-top: 1px solid var(--rule); margin: 0 0 35px; padding: 24px 0 0; text-align: left; }
+.confirmation-items > div { display: flex; font-size: 12px; justify-content: space-between; padding: 10px 0; }
+.confirmation-items strong { font-weight: 500; }
+
+@media (max-width: 720px) {
+  .product-gallery::before { display: none; }
+  .commerce-state__stamp { margin-left: 7vw; margin-right: 7vw; }
+  .confirmation-actions { align-items: stretch; flex-direction: column; }
+  .confirmation-actions .button { width: 100%; }
+  .payment-result__actions { align-items: flex-start; flex-direction: column; gap: 10px; }
+}
