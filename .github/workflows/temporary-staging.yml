@@ -182,6 +182,35 @@ jobs:
           EOF
           pnpm exec tsx "$probe_file"
 
+      - name: Diagnose R2 HeadBucket readiness operation
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          diagnostic_file="$GITHUB_WORKSPACE/.staging-r2-headbucket-diagnostic.mts"
+          trap 'rm -f "$diagnostic_file"' EXIT
+          cat > "$diagnostic_file" <<'EOF'
+          import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
+
+          const endpoint = process.env.S3_ENDPOINT;
+          const region = process.env.S3_REGION;
+          const bucket = process.env.S3_BUCKET;
+          const accessKeyId = process.env.S3_ACCESS_KEY_ID;
+          const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+          const forcePathStyle = process.env.S3_FORCE_PATH_STYLE === "true";
+          if (!endpoint || !region || !bucket || !accessKeyId || !secretAccessKey) throw new Error("Required R2 configuration is missing.");
+          const client = new S3Client({ endpoint, region, forcePathStyle, credentials: { accessKeyId, secretAccessKey } });
+          try {
+            await client.send(new HeadBucketCommand({ Bucket: bucket }));
+            console.log(JSON.stringify({ operation: "HeadBucket", result: "passed" }));
+          } catch (error) {
+            const sdkError = error as { name?: string; message?: string; Code?: string; code?: string; $metadata?: { httpStatusCode?: number; requestId?: string; extendedRequestId?: string } };
+            console.log(JSON.stringify({ operation: "HeadBucket", result: "failed", name: sdkError.name ?? null, code: sdkError.Code ?? sdkError.code ?? null, httpStatusCode: sdkError.$metadata?.httpStatusCode ?? null, requestIdPresent: Boolean(sdkError.$metadata?.requestId), extendedRequestIdPresent: Boolean(sdkError.$metadata?.extendedRequestId), message: sdkError.message ?? null }));
+            process.exitCode = 1;
+          }
+          EOF
+          pnpm exec tsx "$diagnostic_file"
+
       - name: Install cloudflared
         shell: bash
         run: |
