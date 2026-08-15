@@ -6,11 +6,12 @@ import type { AddressInput, DemoOrder, DemoPayment, OrderLineInput } from "../sh
 import { getDb } from "./db";
 import { createPaymentProvider, type DemoOutcome, type PaymentMethod, type PaymentStatus } from "./paymentProviders";
 import { canTransitionInventory, canTransitionPayment } from "./orderState";
+import { getStorefrontCatalog } from "./admin";
 
 const memoryOrders = new Map<string, DemoOrder>();
 const memoryPayments = new Map<string, DemoPayment>();
-function resolveProduct(productId: string) { return products.find((p) => p.id === productId || p.slug === productId) ?? findProduct(productId); }
-function calculate(lines: Array<{ product: ReturnType<typeof resolveProduct>; quantity: number; variant?: string }>) {
+async function resolveProduct(productId: string) { const catalog = await getStorefrontCatalog(); const item = catalog.products.find((p) => p.id === productId || p.slug === productId) as ({ id: string; slug: string; name: string; pricePkr: number; stock: number; category: string; collection: string; description: string; images: string[]; tags: string[]; availability: "in-stock" | "low-stock" | "out-of-stock" } | undefined); if (!item) return undefined; const fallback = products.find((p) => p.id === item.id || p.slug === item.slug) ?? findProduct(item.slug); return { id: item.id, slug: item.slug, name: item.name, price: item.pricePkr, category: item.category, collection: item.collection, description: item.description, details: fallback?.details ?? [], images: item.images.length ? item.images : fallback?.images ?? [], variants: fallback?.variants ?? [{ label: "Edition", value: "Standard", available: item.stock > 0 }], tags: item.tags, availability: item.availability === "out-of-stock" ? "low-stock" : item.availability }; }
+async function calculate(lines: Array<{ product: Awaited<ReturnType<typeof resolveProduct>>; quantity: number; variant?: string }>) {
   const resolved = lines.map(({ product, quantity, variant }) => {
     if (!product) throw new Error("One or more products are no longer available.");
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 20) throw new Error(`Quantity is not available for ${product.name}.`);
@@ -19,8 +20,10 @@ function calculate(lines: Array<{ product: ReturnType<typeof resolveProduct>; qu
     return { productId: product.id, productName: product.name, variant: selected ? `${selected.label}: ${selected.value}` : undefined, quantity, unitPricePkr: product.price, imageUrl: product.images[0] };
   });
   const subtotalPkr = resolved.reduce((sum, line) => sum + line.quantity * line.unitPricePkr, 0);
+  const originalSubtotalPkr = lines.reduce((sum, line) => sum + (line.product?.price ?? 0) * line.quantity, 0);
   const shippingPkr = subtotalPkr >= 25000 ? 0 : 650;
-  return { resolved, subtotalPkr, shippingPkr, discountPkr: 0, totalPkr: subtotalPkr + shippingPkr };
+  const discountPkr = Math.max(0, originalSubtotalPkr - subtotalPkr);
+  return { resolved, subtotalPkr, shippingPkr, discountPkr, totalPkr: subtotalPkr + shippingPkr };
 }
 
 function toPayment(row: typeof paymentAttempts.$inferSelect): DemoPayment {
@@ -42,7 +45,7 @@ async function transitionInventory(tx: any, orderId: number, target: "released" 
 export const CommerceService = {
   async createOrder(userId: string, email: string, lines: OrderLineInput[], address: AddressInput): Promise<DemoOrder> {
     if (!lines.length) throw new Error("Your bag is empty.");
-    const pricing = calculate(lines.map((line) => ({ product: resolveProduct(line.productId), quantity: line.quantity, variant: line.variantId })));
+    const pricing = await calculate(await Promise.all(lines.map(async (line) => ({ product: await resolveProduct(line.productId), quantity: line.quantity, variant: line.variantId }))));
     const db = await getDb();
     if (!db) {
       const orderNumber = `UB-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
@@ -59,7 +62,7 @@ export const CommerceService = {
       await tx.insert(orderItems).values(pricing.resolved.map((line) => ({ orderId: id, productKey: line.productId, productName: line.productName, variant: line.variant ?? null, quantity: line.quantity, unitPricePkr: line.unitPricePkr, imageUrl: line.imageUrl })));
       return { id, orderNumber };
     });
-    return { id: result.orderNumber, orderNumber: result.orderNumber, userId, email, lines: pricing.resolved, address, subtotalPkr: pricing.subtotalPkr, shippingPkr: pricing.shippingPkr, discountPkr: 0, totalPkr: pricing.totalPkr, paymentStatus: "pending", fulfillmentStatus: "pending", inventoryStatus: "reserved", demoMode: true, createdAt: Date.now() };
+    return { id: result.orderNumber, orderNumber: result.orderNumber, userId, email, lines: pricing.resolved, address, subtotalPkr: pricing.subtotalPkr, shippingPkr: pricing.shippingPkr, discountPkr: pricing.discountPkr, totalPkr: pricing.totalPkr, paymentStatus: "pending", fulfillmentStatus: "pending", inventoryStatus: "reserved", demoMode: true, createdAt: Date.now() };
   },
 
   async createPayment(userId: string, orderId: string, method: PaymentMethod, idempotencyKey: string, outcome?: DemoOutcome): Promise<DemoPayment> {

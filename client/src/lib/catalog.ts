@@ -14,6 +14,8 @@ export type Product = {
   variants: ProductVariant[];
   tags: string[];
   availability: "in-stock" | "low-stock";
+  compareAtPrice?: number;
+  promotion?: { id: string; name: string; discountPkr: number };
 };
 
 const image = (id: string, width = 1100) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${width}`;

@@ -79,7 +79,7 @@ When no database is configured, the same domain API runs against an explicit in-
 
 ## Storefront synchronization
 
-The server catalog response is extended with published categories, promotions, and banners. The client hydrates the existing catalog arrays in place after a successful `/api/catalog` request, preserving the current static fallback when the backend is absent. The homepage uses the first active banner when one is published; otherwise it retains the original editorial hero. Product prices and stock are derived from the server catalog response, so the storefront does not maintain a second authoritative catalog.
+The server catalog response is extended with published categories, promotions, and banners. The client hydrates the existing catalog arrays in place after a successful `/api/catalog` request, preserving the current static fallback when the backend is absent. The homepage uses the first active banner when one is published; otherwise it retains the original editorial hero. Product prices and stock are derived from the server catalog response, so the storefront does not maintain a second authoritative catalog. Active promotions are resolved by a shared engine: expired or not-yet-started campaigns are excluded, product/category/catalog targets are matched server-side, and the largest discount wins with a stable ID tie-breaker. The same resolved price is used for order creation, so a browser cannot choose a lower price than the storefront displayed. Merchant image uploads use the protected presign endpoint and the existing storage adapter; the browser never receives storage credentials.
 
 ## Production boundary
 

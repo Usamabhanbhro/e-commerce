@@ -4,7 +4,7 @@ import { apiUrl } from "./api";
 
 export type CartLine = { product: Product; quantity: number; variant?: string };
 export type DemoOrder = { id: string; items: CartLine[]; subtotal: number; shipping: number; total: number; paymentMethod: string; paymentStatus: string; referenceId?: string };
-type ServerProduct = { id: string; slug: string; name: string; pricePkr: number; stock: number; status: string; category: string; collection: string; description: string; images: string[]; tags: string[]; featured: boolean; availability: Product["availability"] };
+type ServerProduct = { id: string; slug: string; name: string; pricePkr: number; compareAtPricePkr?: number; promotion?: { id: string; name: string; discountPkr: number } | null; stock: number; status: string; category: string; collection: string; description: string; images: string[]; tags: string[]; featured: boolean; availability: Product["availability"] };
 type ServerCategory = { id: string; slug: string; name: string; description: string; imageUrl: string; status: string; sortOrder: number };
 type ServerPromotion = { id: string; name: string; description: string; discountType: string; discountValue: number; targetType: string; targetValue: string; status: string };
 type ServerBanner = { id: string; imageUrl: string; title: string; subtitle: string; ctaText: string; destination: string; status: string; sortOrder: number };
@@ -19,7 +19,7 @@ const read = <T,>(key: string, fallback: T): T => { try { return JSON.parse(loca
 
 function mergeServerProduct(item: ServerProduct): Product {
   const fallback = seedProducts.find((product) => product.id === item.id || product.slug === item.slug);
-  return { id: item.id, slug: item.slug, name: item.name, price: item.pricePkr, category: item.category, collection: item.collection, description: item.description, details: fallback?.details ?? ["Merchant-managed catalog record", "Availability is controlled from the admin workspace"], images: item.images.length ? item.images : fallback?.images ?? [], variants: fallback?.variants ?? [{ label: "Edition", value: "Standard", available: item.stock > 0 }], tags: item.tags, availability: item.stock <= 0 ? "low-stock" : item.availability === "low-stock" ? "low-stock" : "in-stock" };
+  return { id: item.id, slug: item.slug, name: item.name, price: item.pricePkr, compareAtPrice: item.compareAtPricePkr, promotion: item.promotion ?? undefined, category: item.category, collection: item.collection, description: item.description, details: fallback?.details ?? ["Merchant-managed catalog record", "Availability is controlled from the admin workspace"], images: item.images.length ? item.images : fallback?.images ?? [], variants: fallback?.variants ?? [{ label: "Edition", value: "Standard", available: item.stock > 0 }], tags: item.tags, availability: item.stock <= 0 ? "low-stock" : item.availability === "low-stock" ? "low-stock" : "in-stock" };
 }
 
 export function CommerceProvider({ children }: { children: ReactNode }) {
