@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { collections as seedCollections, findProduct, journals as seedJournals, products as seedProducts, type Product } from "./catalog";
+import { apiUrl } from "./api";
 
 export type CartLine = { product: Product; quantity: number; variant?: string };
 export type DemoOrder = { id: string; items: CartLine[]; subtotal: number; shipping: number; total: number; paymentMethod: string; paymentStatus: string; referenceId?: string };
@@ -26,7 +27,7 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>(() => read("usamabhanbhro-wishlist", []));
   const [lastOrder, setLastOrder] = useState<DemoOrder | null>(() => read("usamabhanbhro-order", null));
   const [catalog, setCatalog] = useState<Product[]>(seedProducts); const [categories, setCategories] = useState<ServerCategory[]>([]); const [promotions, setPromotions] = useState<ServerPromotion[]>([]); const [banners, setBanners] = useState<ServerBanner[]>([]); const [catalogLoading, setCatalogLoading] = useState(true);
-  const refreshCatalog = async () => { try { const response = await fetch("/api/catalog", { credentials: "include" }); if (!response.ok) throw new Error("catalog unavailable"); const data = await response.json() as { products?: ServerProduct[]; categories?: ServerCategory[]; promotions?: ServerPromotion[]; banners?: ServerBanner[] }; if (data.products?.length) setCatalog(data.products.map(mergeServerProduct)); setCategories(data.categories ?? []); setPromotions(data.promotions ?? []); setBanners(data.banners ?? []); } catch { setCatalog(seedProducts); } finally { setCatalogLoading(false); } };
+  const refreshCatalog = async () => { try { const response = await fetch(apiUrl("/api/catalog"), { credentials: "include" }); if (!response.ok) throw new Error("catalog unavailable"); const data = await response.json() as { products?: ServerProduct[]; categories?: ServerCategory[]; promotions?: ServerPromotion[]; banners?: ServerBanner[] }; if (data.products?.length) setCatalog(data.products.map(mergeServerProduct)); setCategories(data.categories ?? []); setPromotions(data.promotions ?? []); setBanners(data.banners ?? []); } catch { setCatalog(seedProducts); } finally { setCatalogLoading(false); } };
   useEffect(() => { void refreshCatalog(); }, []);
   useEffect(() => localStorage.setItem("usamabhanbhro-cart", JSON.stringify(cart)), [cart]);
   useEffect(() => localStorage.setItem("usamabhanbhro-wishlist", JSON.stringify(wishlist)), [wishlist]);

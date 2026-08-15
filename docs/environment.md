@@ -98,3 +98,13 @@ Before committing, confirm:
 - Real customer, payment, and operational data has not been added to the repository.
 
 The project remains **CLIENT DEMO READY** until these production prerequisites are independently provisioned and verified.
+
+## Dedicated staging API and object storage
+
+The GitHub Pages frontend can target a separately deployed staging API through the public `VITE_API_BASE_URL` build variable. This value is an origin such as `https://staging-api.example.com`; it contains no secret and is safe to expose in the browser bundle. The API constructs OAuth callback URLs and all catalog/admin requests from this origin.
+
+A staging server must set `APP_ENV=staging` and `NODE_ENV=production`. In that mode, startup validation requires a dedicated `DATABASE_URL`, strong `JWT_SECRET` and `PAYMENT_WEBHOOK_SECRET` values, exact `FRONTEND_ORIGIN`/`ALLOWED_ORIGINS`, and the complete `S3_*` object-storage contract. `GET /ready` checks both MariaDB/MySQL reachability and the configured object-storage bucket. The server returns `503` rather than presenting a persistent CMS when either dependency is unavailable.
+
+The S3-compatible adapter accepts only bounded image uploads under the `merchant/` namespace. Uploads are requested through server-guarded presigned URLs; storage credentials never reach the browser. The local rehearsal configuration in [`docker-compose.staging.yml`](../docker-compose.staging.yml) uses isolated MariaDB and MinIO volumes and must not share production data or credentials.
+
+The development/test demo-owner login is intentionally unavailable in staging and production. A real staging OAuth client and callback at `<STAGING_API_ORIGIN>/api/oauth/callback` must be provisioned manually. No staging hosting provider, database, object-storage account, or OAuth credential is connected in the current session; see [`staging-deployment.md`](staging-deployment.md) for the exact provisioning sequence.

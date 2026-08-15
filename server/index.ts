@@ -10,6 +10,7 @@ import { clearSession, currentUser, oauthError, optionalSession, requireSession,
 import { CommerceService } from "./commerce";
 import type { DemoOutcome, PaymentMethod, PaymentStatus } from "./paymentProviders";
 import { getStorefrontCatalog, registerAdminRoutes } from "./admin";
+import { pingStorage, readObject, storageSummary } from "./storage";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const app = express();
@@ -28,8 +29,8 @@ app.use((req, _res, next) => {
 app.use((req, _res, next) => { if (req.path.startsWith("/api/") || req.path.startsWith("/auth/") || req.path.startsWith("/storage/")) return scopedRateLimit(60_000, 120)(req, _res, next); next(); });
 app.use(express.json({ limit: "64kb", verify: (req, _res, buffer) => { (req as Request & { rawBody?: Buffer }).rawBody = Buffer.from(buffer); } }));
 
-app.get("/health", (_req, res) => res.status(200).json({ status: "ok", environment: environmentSummary(), timestamp: new Date().toISOString() }));
-app.get("/ready", async (_req, res) => { try { const database = process.env.DATABASE_URL ? await pingDatabase() : false; if (!database && (process.env.APP_ENV === "staging" || process.env.APP_ENV === "production")) return res.status(503).json({ status: "not_ready", database: false }); return res.status(200).json({ status: "ready", database }); } catch { return res.status(503).json({ status: "not_ready", database: false }); } });
+app.get("/health", (_req, res) => res.status(200).json({ status: "ok", environment: { ...environmentSummary(), storage: storageSummary() }, timestamp: new Date().toISOString() }));
+app.get("/ready", async (_req, res) => { try { const productionLike = process.env.APP_ENV === "staging" || process.env.APP_ENV === "production" || process.env.NODE_ENV === "production"; const database = process.env.DATABASE_URL ? await pingDatabase() : false; const storage = await pingStorage(); if (productionLike && (!database || !storage)) return res.status(503).json({ status: "not_ready", database, storage }); return res.status(200).json({ status: "ready", database, storage }); } catch { return res.status(503).json({ status: "not_ready", database: false, storage: false }); } });
 
 app.get("/api/catalog", async (_req, res, next) => { try { res.json(await getStorefrontCatalog()); } catch (error) { next(error); } });
 app.get("/api/auth/me", optionalSession, (req, res) => res.json({ user: currentUser(req) }));
@@ -43,7 +44,7 @@ app.get("/api/orders/:orderId", requireSession, async (req, res, next) => { try 
 app.post("/api/payments", requireSession, async (req, res, next) => { try { const user = currentUser(req); if (!user) return unauthorized(res); const key = req.header("x-idempotency-key") ?? req.body?.idempotencyKey; const { orderId, method, demoOutcome } = req.body ?? {}; if (typeof orderId !== "string" || typeof method !== "string" || !key) return badRequest(res, "orderId, method, and X-Idempotency-Key are required."); const payment = await CommerceService.createPayment(user.id, orderId, method as PaymentMethod, key, demoOutcome as DemoOutcome | undefined); return res.status(201).json(payment); } catch (error) { return next(error); } });
 app.post("/api/webhooks/payment", async (req, res, next) => { try { const raw = (req as Request & { rawBody?: Buffer }).rawBody ?? Buffer.from(JSON.stringify(req.body ?? {})); if (!verifyHmac(raw, req.header("x-webhook-signature") ?? req.header("x-payment-signature"))) return res.status(401).json({ error: { code: "INVALID_WEBHOOK_SIGNATURE", message: "Webhook signature could not be verified." } }); const { eventId, orderId, referenceId, provider, status, amountPkr } = req.body ?? {}; if (!["pending", "initiated", "successful", "failed", "cancelled"].includes(status)) return badRequest(res, "Invalid payment status."); const result = await CommerceService.processWebhook({ eventId, orderId, referenceId, provider, status: status as PaymentStatus, amountPkr }); return res.json(result); } catch (error) { return next(error); } });
 
-app.get("/storage/{*key}", (req, res) => { const key = String(req.params.key ?? ""); if (!validStorageKey(key)) return badRequest(res, "Invalid storage key."); return res.status(404).json({ error: { code: "STORAGE_NOT_FOUND", message: "Storage object was not found." } }); });
+app.get("/storage/{*key}", async (req, res, next) => { try { const key = String(req.params.key ?? ""); if (!validStorageKey(key)) return badRequest(res, "Invalid storage key."); const object = await readObject(key); if (!object) return res.status(404).json({ error: { code: "STORAGE_NOT_FOUND", message: "Storage object was not found." } }); res.setHeader("Content-Type", object.contentType); res.setHeader("Cache-Control", object.cacheControl); if (object.contentLength) res.setHeader("Content-Length", String(object.contentLength)); return res.end(object.body); } catch (error) { return next(error); } });
 
 const staticPath = process.env.NODE_ENV === "production" ? path.resolve(__dirname, "public") : path.resolve(process.cwd(), "dist", "public");
 app.use(express.static(staticPath, { index: "index.html", maxAge: process.env.APP_ENV === "production" ? "1d" : 0 }));

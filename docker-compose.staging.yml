@@ -1,0 +1,35 @@
+services:
+  mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: usamabhanbhro_staging
+      MARIADB_USER: staging_app
+      MARIADB_PASSWORD: replace-with-local-staging-db-password
+      MARIADB_ROOT_PASSWORD: replace-with-local-staging-root-password
+    ports:
+      - "3307:3306"
+    volumes:
+      - staging_mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$${MARIADB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: replace-with-local-staging-storage-password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - staging_minio:/data
+
+volumes:
+  staging_mariadb:
+  staging_minio:

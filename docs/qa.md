@@ -135,3 +135,19 @@ The admin screenshot and browser evidence must remain local or server-backed reh
 The release classification remains **CLIENT DEMO READY**. The CMS is not represented as a production admin system until OAuth/session provisioning, database operations, encrypted backups, object storage, monitoring, distributed rate limiting, and production admin identity are independently provisioned and verified.
 
 ---
+
+## Staging-readiness validation evidence — 15 August 2026
+
+The final staging-preparation changes were validated from the current worktree with the repository’s required static gates:
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Unit tests | Passed | `pnpm test`; 28/28 tests passed across commerce, admin RBAC/media validation, and payment contracts. |
+| Type-check | Passed | `pnpm check`; TypeScript completed without diagnostics. |
+| Production build | Passed | `pnpm build`; Vite client and bundled Express server completed successfully. |
+| GitHub Pages build | Passed | `pnpm build:pages`; the static `/e-commerce/` artifact completed successfully. |
+| Release scan | Passed | `pnpm scan:release`; 151 files scanned with no secret-like, legacy-brand, or disallowed local-runtime findings. The scanner explicitly allows the local-only `docker-compose.staging.yml` rehearsal topology. |
+| Container validation | CI-configured; not locally executable | `.github/workflows/staging-validate.yml` runs `docker build` on GitHub-hosted runners. The current sandbox has no Docker/Podman runtime, so no local image build is claimed. |
+| Remote staging deployment | Not performed | No hosting provider, database, S3-compatible bucket, OAuth client, or staging secrets are connected. The repository is staging-prepared, not remotely provisioned or deployed. |
+
+The staging changes preserve the existing MariaDB/Drizzle, Express, and authentication architecture. They add cross-origin API-base wiring, exact-origin CORS configuration, server-only S3-compatible storage with presigned image uploads, fail-closed database/storage readiness, development/test-only demo login, a reproducible local MariaDB/MinIO rehearsal topology, a production container definition, and CI validation. Remote smoke tests, real staging OAuth, storage upload/retrieval against a provisioned bucket, and end-to-end CMS persistence remain manual follow-up steps after dedicated infrastructure is supplied.

@@ -10,7 +10,7 @@ const forbidden = [
 const legacy = /(?:old-brand-name|old-brand|placeholder-secret-value)/i;
 const localRuntime = /(?:APP_ENV|NODE_ENV)\s*=\s*development|(?:https?:\/\/)?(?:localhost|127\.0\.0\.1)(?::\d+)?/i;
 const violations = [];
-const productionScanExcluded = (file) => file === ".env.example" || file.startsWith("docs/") || file.startsWith("tests/") || file.startsWith(".github/") || ["playwright.config.ts", "vite.config.ts", "drizzle.config.ts"].includes(file);
+const productionScanExcluded = (file) => file === ".env.example" || file === "docker-compose.staging.yml" || file.startsWith("docs/") || file.startsWith("tests/") || file.startsWith(".github/") || ["playwright.config.ts", "vite.config.ts", "drizzle.config.ts"].includes(file);
 for (const file of files) {
   if (file === "scripts/scan-secrets.mjs" || file.endsWith(".png") || file.endsWith(".jpg") || file.endsWith(".jpeg") || file.endsWith(".woff2")) continue;
   let content = "";

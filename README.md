@@ -161,6 +161,12 @@ GitHub Pages hosts the static frontend only. It does not host the Express API, M
 
 See [`docs/deployment.md`](docs/deployment.md) for deployment details and custom-domain readiness.
 
+### Dedicated staging readiness
+
+The repository now includes a dedicated staging topology and deployment guide at [`docs/staging-deployment.md`](docs/staging-deployment.md). It wires the existing merchant CMS to an externally hosted Express API, isolated MariaDB/MySQL, and S3-compatible object storage with exact-origin CORS, fail-closed readiness checks, server-only storage credentials, and no demo-owner login outside development/test. The checked-in [`staging-validate.yml`](.github/workflows/staging-validate.yml) workflow validates the application gates and builds the production container image, but it does not provision or deploy infrastructure.
+
+No staging hosting provider, database, object-storage account, OAuth client, or staging secrets are connected in this repository session. The application is **staging-prepared, not remotely deployed**; follow the manual provisioning steps before pointing a Pages build at a staging API.
+
 ## Environment and security boundaries
 
 The checked-in [`.env.example`](.env.example) documents the server configuration shape. Development may use mock payment behavior and local origins. Staging-like and production-like environments require validated secrets, database connectivity, and explicit origin configuration.
@@ -210,6 +216,7 @@ The screenshots below are captured from the actual deployed application and stor
 | [`docs/admin-architecture.md`](docs/admin-architecture.md) | Merchant studio roles, API surface, persistence, audit, and storefront synchronization |
 | [`docs/qa.md`](docs/qa.md) | Validation gates, test evidence, database rehearsal, and release hygiene |
 | [`docs/deployment.md`](docs/deployment.md) | GitHub Pages workflow, artifact behavior, routing fallback, and domain setup |
+| [`docs/staging-deployment.md`](docs/staging-deployment.md) | Isolated staging topology, secrets, storage, API wiring, validation, and manual provisioning boundary |
 | [`docs/environment.md`](docs/environment.md) | Development, staging-like, production-like, and browser-secret boundaries |
 | [`docs/production-readiness.md`](docs/production-readiness.md) | PASS/BLOCKED/NOT APPLICABLE production-readiness matrix |
 | [`docs/release-checklist.md`](docs/release-checklist.md) | Release classification and pre-release checklist |

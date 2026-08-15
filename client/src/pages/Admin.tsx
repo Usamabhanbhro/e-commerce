@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { Link, useLocation } from "wouter";
 import { ArrowUpRight, Boxes, ChevronRight, CircleAlert, ClipboardList, ExternalLink, FileClock, Gauge, ImagePlus, LayoutDashboard, LogOut, Menu, Package, Plus, RefreshCw, Search, Settings2, ShieldCheck, ShoppingBag, Tags, Users, Warehouse, X } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { apiUrl } from "@/lib/api";
 import "@/admin.css";
 
 type Product = { id: string; slug: string; name: string; pricePkr: number; stock: number; status: string; category: string; collection: string; description: string; images: string[]; tags: string[]; featured: boolean; availability: string };
@@ -19,7 +20,7 @@ const navItems = [
 ];
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(path, { credentials: "include", headers: { "Content-Type": "application/json", ...(options?.headers ?? {}) }, ...options });
+  const response = await fetch(apiUrl(path), { credentials: "include", headers: { "Content-Type": "application/json", ...(options?.headers ?? {}) }, ...options });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body?.error?.message ?? "The request could not be completed.");
   return body as T;
