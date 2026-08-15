@@ -197,16 +197,17 @@ jobs:
           const bucket = process.env.S3_BUCKET;
           const accessKeyId = process.env.S3_ACCESS_KEY_ID;
           const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
-          const forcePathStyle = process.env.S3_FORCE_PATH_STYLE === "true";
+          const configuredForcePathStyle = process.env.S3_FORCE_PATH_STYLE === "true";
           if (!endpoint || !region || !bucket || !accessKeyId || !secretAccessKey) throw new Error("Required R2 configuration is missing.");
-          const client = new S3Client({ endpoint, region, forcePathStyle, credentials: { accessKeyId, secretAccessKey } });
-          try {
-            await client.send(new HeadBucketCommand({ Bucket: bucket }));
-            console.log(JSON.stringify({ operation: "HeadBucket", result: "passed" }));
-          } catch (error) {
-            const sdkError = error as { name?: string; message?: string; Code?: string; code?: string; $metadata?: { httpStatusCode?: number; requestId?: string; extendedRequestId?: string } };
-            console.log(JSON.stringify({ operation: "HeadBucket", result: "failed", name: sdkError.name ?? null, code: sdkError.Code ?? sdkError.code ?? null, httpStatusCode: sdkError.$metadata?.httpStatusCode ?? null, requestIdPresent: Boolean(sdkError.$metadata?.requestId), extendedRequestIdPresent: Boolean(sdkError.$metadata?.extendedRequestId), message: sdkError.message ?? null }));
-            process.exitCode = 1;
+          for (const forcePathStyle of [configuredForcePathStyle, !configuredForcePathStyle]) {
+            const client = new S3Client({ endpoint, region, forcePathStyle, credentials: { accessKeyId, secretAccessKey } });
+            try {
+              await client.send(new HeadBucketCommand({ Bucket: bucket }));
+              console.log(JSON.stringify({ operation: "HeadBucket", forcePathStyle, result: "passed" }));
+            } catch (error) {
+              const sdkError = error as { name?: string; message?: string; Code?: string; code?: string; $metadata?: { httpStatusCode?: number; requestId?: string; extendedRequestId?: string } };
+              console.log(JSON.stringify({ operation: "HeadBucket", forcePathStyle, result: "failed", name: sdkError.name ?? null, code: sdkError.Code ?? sdkError.code ?? null, httpStatusCode: sdkError.$metadata?.httpStatusCode ?? null, requestIdPresent: Boolean(sdkError.$metadata?.requestId), extendedRequestIdPresent: Boolean(sdkError.$metadata?.extendedRequestId), message: sdkError.message ?? null }));
+            }
           }
           EOF
           pnpm exec tsx "$diagnostic_file"
