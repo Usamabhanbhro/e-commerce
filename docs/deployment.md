@@ -71,3 +71,7 @@ The custom-domain setup is an external deployment prerequisite and is not a reas
 ## Backend deployment boundary
 
 GitHub Pages serves only `dist/public`. The Express API, MySQL/MariaDB database, OAuth provider, official payment adapter, S3-compatible storage, scheduled backups, WAF/edge layer, monitoring, alerting, and distributed rate limiting require separate infrastructure. A successful Pages deployment is evidence of frontend delivery, not evidence that live commerce is operational.
+
+## Merchant studio on Pages
+
+The `/admin` path is included in the same static frontend artifact and returns the application shell through the deployment fallback. GitHub Pages may preserve an HTTP 404 status for a deep path while serving the fallback document; the client router can still resolve the route in the browser. The merchant gate then correctly requires the separate Express session/API boundary. Pages does not provide `/api/admin/*`, database persistence, OAuth, or merchant mutations, so the public deployment exposes only the admin presentation shell and not a production control plane.
