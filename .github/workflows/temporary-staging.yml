@@ -143,9 +143,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/r2-media-probe.mts" <<'EOF'
-          const { createUploadUrl, objectExists, readObject } = await import(new URL(`file://${process.env.GITHUB_WORKSPACE}/server/storage.ts`).href);
+          probe_file="$GITHUB_WORKSPACE/.staging-r2-media-probe.mts"
+          trap 'rm -f "$probe_file"' EXIT
+          cat > "$probe_file" <<'EOF'
           import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
+          import { createUploadUrl, objectExists, readObject } from "./server/storage.ts";
 
           const config = {
             endpoint: process.env.S3_ENDPOINT,
@@ -178,7 +180,7 @@ jobs:
             await Promise.all(keys.map((Key) => client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key }))));
           }
           EOF
-          pnpm exec tsx "$RUNNER_TEMP/r2-media-probe.mts"
+          pnpm exec tsx "$probe_file"
 
       - name: Install cloudflared
         shell: bash
