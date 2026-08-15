@@ -6,7 +6,7 @@ import { unauthorized } from "./security";
 const cookieName = "ub_session";
 const secret = () => new TextEncoder().encode(process.env.JWT_SECRET || (appEnvironment === "development" || appEnvironment === "test" ? "development-only-session-secret-change-me" : ""));
 
-export type SessionUser = { id: string; email?: string; name?: string; owner?: boolean };
+export type SessionUser = { id: string; email?: string; name?: string; owner?: boolean; role?: "owner" | "admin" | "staff" | "user" };
 
 export async function createSession(user: SessionUser): Promise<string> {
   if (isProductionLike && secret().length < 32) throw new Error("Session secret is not configured.");
@@ -18,7 +18,8 @@ export async function readSession(token: string | undefined): Promise<SessionUse
   try {
     const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
     if (typeof payload.id !== "string") return null;
-    return { id: payload.id, email: typeof payload.email === "string" ? payload.email : undefined, name: typeof payload.name === "string" ? payload.name : undefined, owner: payload.owner === true };
+    const role = payload.role === "owner" || payload.role === "admin" || payload.role === "staff" || payload.role === "user" ? payload.role : undefined;
+    return { id: payload.id, email: typeof payload.email === "string" ? payload.email : undefined, name: typeof payload.name === "string" ? payload.name : undefined, owner: payload.owner === true, role };
   } catch {
     return null;
   }

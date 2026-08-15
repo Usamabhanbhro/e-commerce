@@ -92,4 +92,72 @@ export const customerAddresses = mysqlTable("customer_addresses", {
 export type User = typeof users.$inferSelect;
 export type CatalogProduct = typeof catalogProducts.$inferSelect;
 export type Order = typeof orders.$inferSelect;
+export const adminCategories = mysqlTable("admin_categories", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 191 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: varchar("description", { length: 1000 }),
+  imageUrl: varchar("imageUrl", { length: 1000 }),
+  status: varchar("status", { length: 32 }).notNull().default("active"),
+  sortOrder: int("sortOrder").notNull().default(0),
+  ...timestamps,
+}, (table) => ({ slugUnique: uniqueIndex("admin_categories_slug_unique").on(table.slug) }));
+
+export const adminPromotions = mysqlTable("admin_promotions", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: varchar("description", { length: 1000 }),
+  discountType: varchar("discountType", { length: 32 }).notNull(),
+  discountValue: int("discountValue").notNull(),
+  targetType: varchar("targetType", { length: 32 }).notNull().default("catalog"),
+  targetValue: varchar("targetValue", { length: 191 }),
+  startAt: datetime("startAt", { mode: "date" }),
+  endAt: datetime("endAt", { mode: "date" }),
+  status: varchar("status", { length: 32 }).notNull().default("draft"),
+  ...timestamps,
+});
+
+export const adminBanners = mysqlTable("admin_banners", {
+  id: serial("id").primaryKey(),
+  imageUrl: varchar("imageUrl", { length: 1000 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  subtitle: varchar("subtitle", { length: 500 }),
+  ctaText: varchar("ctaText", { length: 128 }),
+  destination: varchar("destination", { length: 500 }).notNull(),
+  startAt: datetime("startAt", { mode: "date" }),
+  endAt: datetime("endAt", { mode: "date" }),
+  status: varchar("status", { length: 32 }).notNull().default("draft"),
+  sortOrder: int("sortOrder").notNull().default(0),
+  ...timestamps,
+});
+
+export const inventoryAdjustments = mysqlTable("inventory_adjustments", {
+  id: serial("id").primaryKey(),
+  productKey: varchar("productKey", { length: 191 }).notNull(),
+  previousQuantity: int("previousQuantity").notNull(),
+  adjustment: int("adjustment").notNull(),
+  resultingQuantity: int("resultingQuantity").notNull(),
+  reason: varchar("reason", { length: 500 }).notNull(),
+  actorUserId: varchar("actorUserId", { length: 191 }).notNull(),
+  requestId: varchar("requestId", { length: 128 }),
+  ...timestamps,
+});
+
+export const adminAuditEvents = mysqlTable("admin_audit_events", {
+  id: serial("id").primaryKey(),
+  actorUserId: varchar("actorUserId", { length: 191 }).notNull(),
+  actorRole: varchar("actorRole", { length: 32 }).notNull(),
+  action: varchar("action", { length: 128 }).notNull(),
+  resource: varchar("resource", { length: 64 }).notNull(),
+  resourceId: varchar("resourceId", { length: 191 }),
+  changedFields: json("changedFields").notNull(),
+  requestId: varchar("requestId", { length: 128 }),
+  ...timestamps,
+});
+
 export type PaymentAttempt = typeof paymentAttempts.$inferSelect;
+export type AdminCategory = typeof adminCategories.$inferSelect;
+export type AdminPromotion = typeof adminPromotions.$inferSelect;
+export type AdminBanner = typeof adminBanners.$inferSelect;
+export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
+export type AdminAuditEvent = typeof adminAuditEvents.$inferSelect;

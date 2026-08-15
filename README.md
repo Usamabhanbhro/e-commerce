@@ -32,8 +32,25 @@ The storefront gives a potential client a realistic product-discovery and checko
 | Payments | Provider-independent interface with deterministic mock/sandbox boundaries; no real provider credentials are included |
 | Editorial content | Journal index, article pages, about page, contact state, and styled not-found route |
 | Responsive UI | Desktop, tablet, and mobile layouts with reduced-motion support and keyboard-safe controls |
+| Merchant studio | Authenticated `/admin` control panel with owner/admin/staff RBAC, server-owned catalog, inventory adjustments, promotions, banners, operations views, and audit trail |
 
 The public demo’s catalog, cart, wishlist, newsletter, contact, and order interactions are showcase behavior. The backend contains the durable commerce implementation and test boundaries, but GitHub Pages hosts only the frontend.
+
+## Merchant studio
+
+The `/admin` route is a custom internal tool rather than a customer-facing dashboard. It opens with an authenticated gate, offers an explicitly labeled local demo-owner workspace outside production, and keeps authorization on the server. The dashboard covers products, categories, inventory, promotions, homepage banners, orders, customers, staff roles, audit history, and non-sensitive settings diagnostics.
+
+| Admin capability | Implementation boundary |
+| --- | --- |
+| Authentication | Existing session/OAuth boundary plus non-production-only demo login |
+| Authorization | Server-enforced `owner`, `admin`, and `staff` permissions; browser navigation is not trusted |
+| Catalog | CRUD-style product and category management with archive safeguards and server-owned storefront synchronization |
+| Inventory | Reasoned stock adjustments with negative-stock rejection and database conflict protection |
+| Merchandising | Promotion lifecycle controls and ordered homepage banner publishing |
+| Operations | Orders, customers, staff, audit, and settings views with role-aware access |
+| Persistence | Drizzle/MySQL-compatible tables when `DATABASE_URL` is configured; deterministic in-memory rehearsal store otherwise |
+
+The admin workspace is demonstrable in local development and intentionally remains **CLIENT DEMO READY**. It does not turn GitHub Pages into a backend host, does not expose server secrets to the browser, and does not imply production persistence when the database is absent. See [`docs/admin-architecture.md`](docs/admin-architecture.md) for the role matrix, API boundaries, migration strategy, and storefront synchronization details.
 
 ## Selected routes
 
@@ -52,6 +69,8 @@ The public demo’s catalog, cart, wishlist, newsletter, contact, and order inte
 | `/wishlist` | Saved products |
 | `/journal` and `/journal/:slug` | Editorial journal and article pages |
 | `/about` and `/contact` | Brand and contact surfaces |
+| `/admin` | Authenticated merchant dashboard and operational control panel; local demo-owner entry is explicitly non-production |
+| `/admin/products` through `/admin/settings` | Protected catalog, inventory, merchandising, operations, staff, audit, and settings surfaces |
 
 ## Technology stack
 
@@ -91,9 +110,9 @@ The current reconstructed candidate records the following evidence:
 
 | Gate | Result |
 | --- | --- |
-| Unit tests | **23/23 passed** |
-| Functional browser tests | **46/46 passed** |
-| Visual tests | **12/12 passed against reconstructed baselines** |
+| Unit tests | **26/26 passed** including admin RBAC coverage |
+| Functional browser tests | **48/48 passed** including merchant studio access and sections |
+| Visual tests | **12/12 passed against refreshed reconstructed baselines** |
 | TypeScript and lint | Passed |
 | Production and Pages builds | Passed |
 | Database rehearsal | Passed; 36 products and 8 collections seeded |
@@ -188,6 +207,7 @@ The screenshots below are captured from the actual deployed application and stor
 | Document | Purpose |
 | --- | --- |
 | [`docs/architecture.md`](docs/architecture.md) | Application, commerce, data, security, and deployment architecture |
+| [`docs/admin-architecture.md`](docs/admin-architecture.md) | Merchant studio roles, API surface, persistence, audit, and storefront synchronization |
 | [`docs/qa.md`](docs/qa.md) | Validation gates, test evidence, database rehearsal, and release hygiene |
 | [`docs/deployment.md`](docs/deployment.md) | GitHub Pages workflow, artifact behavior, routing fallback, and domain setup |
 | [`docs/environment.md`](docs/environment.md) | Development, staging-like, production-like, and browser-secret boundaries |

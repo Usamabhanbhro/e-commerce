@@ -123,3 +123,15 @@ A gate may only be described as passed when it has been executed against the cur
 ## Final screenshot inspection
 
 The committed screenshot gallery is sourced from the corrected live Pages deployment. Visual inspection confirmed that `docs/assets/homepage.png` shows the editorial storefront hero, featured edits, product imagery, journal content, collection links, and footer; `docs/assets/catalog.png` shows the `Shop all` page with eight demo products and the shared storefront shell. The product-detail, checkout, and mobile captures were taken from the same corrected deployment at desktop or 390px responsive viewports. These images are portfolio evidence of the public demo surface, not production-commerce evidence.
+
+## Merchant CMS validation
+
+The current CMS implementation adds a protected `/admin` route and guarded `/api/admin/*` surface. The deterministic browser run used `NODE_ENV=development`, valid test secrets, the built client, and system Chromium at `http://127.0.0.1:4177`; it passed **60/60 Playwright tests**, including the authenticated demo-owner merchant workspace regression, all storefront route checks, security probes, and 12 visual baselines. The focused unit suite now passes **26/26 tests**, including explicit owner/admin/staff RBAC decisions.
+
+The CMS type-check, production build, Pages build, release scan, and whitespace validation passed on the current worktree. The configured dependency audits also exited successfully at their thresholds but reported the repository’s existing advisories: `pnpm audit:prod` reports two moderate advisories and `pnpm audit:critical` reports one low and three moderate advisories with no critical advisory. This remains a documented dependency-maintenance item rather than a release-blocking critical vulnerability.
+
+The admin screenshot and browser evidence must remain local or server-backed rehearsal evidence. GitHub Pages continues to host the public storefront only; it cannot authenticate or persist merchant mutations without the separate Express/database deployment described in `docs/admin-architecture.md`.
+
+The release classification remains **CLIENT DEMO READY**. The CMS is not represented as a production admin system until OAuth/session provisioning, database operations, encrypted backups, object storage, monitoring, distributed rate limiting, and production admin identity are independently provisioned and verified.
+
+---

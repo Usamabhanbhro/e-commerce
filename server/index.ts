@@ -9,7 +9,7 @@ import { badRequest, corsAllowlist, requestId, sanitizedErrors, scopedRateLimit,
 import { clearSession, currentUser, oauthError, optionalSession, requireSession, setSession } from "./auth";
 import { CommerceService } from "./commerce";
 import type { DemoOutcome, PaymentMethod, PaymentStatus } from "./paymentProviders";
-import { products, collections, journals } from "../client/src/lib/catalog";
+import { getStorefrontCatalog, registerAdminRoutes } from "./admin";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const app = express();
@@ -31,11 +31,12 @@ app.use(express.json({ limit: "64kb", verify: (req, _res, buffer) => { (req as R
 app.get("/health", (_req, res) => res.status(200).json({ status: "ok", environment: environmentSummary(), timestamp: new Date().toISOString() }));
 app.get("/ready", async (_req, res) => { try { const database = process.env.DATABASE_URL ? await pingDatabase() : false; if (!database && (process.env.APP_ENV === "staging" || process.env.APP_ENV === "production")) return res.status(503).json({ status: "not_ready", database: false }); return res.status(200).json({ status: "ready", database }); } catch { return res.status(503).json({ status: "not_ready", database: false }); } });
 
-app.get("/api/catalog", (_req, res) => res.json({ products, collections, journals }));
+app.get("/api/catalog", async (_req, res, next) => { try { res.json(await getStorefrontCatalog()); } catch (error) { next(error); } });
 app.get("/api/auth/me", optionalSession, (req, res) => res.json({ user: currentUser(req) }));
 app.post("/api/auth/logout", (req, res) => { clearSession(res); res.json({ ok: true }); });
 app.get("/api/oauth/callback", (req, res) => oauthError(res, typeof req.query.error === "string" ? req.query.error : "oauth_error"));
 app.get("/api/account", requireSession, (req, res) => res.json({ user: currentUser(req) }));
+registerAdminRoutes(app);
 
 app.post("/api/orders", requireSession, async (req, res, next) => { try { const user = currentUser(req); if (!user) return unauthorized(res); const { email, lines, address } = req.body ?? {}; if (typeof email !== "string" || !Array.isArray(lines) || !address) return badRequest(res, "A valid email, cart lines, and shipping address are required."); const order = await CommerceService.createOrder(user.id, email, lines, address); return res.status(201).json(order); } catch (error) { return next(error); } });
 app.get("/api/orders/:orderId", requireSession, async (req, res, next) => { try { const user = currentUser(req); if (!user) return unauthorized(res); const order = await CommerceService.getOrder(user.id, String(req.params.orderId)); if (!order) return res.status(404).json({ error: { code: "NOT_FOUND", message: "Order was not found." } }); return res.json(order); } catch (error) { return next(error); } });
