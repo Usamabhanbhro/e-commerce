@@ -53,10 +53,6 @@ jobs:
       PAYMENT_PROVIDER_ADAPTER: demo
       FRONTEND_ORIGIN: https://usamabhanbhro.github.io
       ALLOWED_ORIGINS: https://usamabhanbhro.github.io
-      OAUTH_SERVER_URL: ${{ secrets.OAUTH_SERVER_URL }}
-      OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
-      OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
-      OWNER_OPEN_ID: ${{ secrets.OWNER_OPEN_ID }}
       S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
       S3_REGION: ${{ secrets.S3_REGION }}
       S3_BUCKET: ${{ secrets.S3_BUCKET }}
@@ -93,9 +89,6 @@ jobs:
           }
           check_required JWT_SECRET "${JWT_SECRET:-}"
           check_required PAYMENT_WEBHOOK_SECRET "${PAYMENT_WEBHOOK_SECRET:-}"
-          check_required OAUTH_SERVER_URL "${OAUTH_SERVER_URL:-}"
-          check_required OAUTH_CLIENT_ID "${OAUTH_CLIENT_ID:-}"
-          check_required OAUTH_CLIENT_SECRET "${OAUTH_CLIENT_SECRET:-}"
           check_required S3_ENDPOINT "${S3_ENDPOINT:-}"
           check_required S3_REGION "${S3_REGION:-}"
           check_required S3_BUCKET "${S3_BUCKET:-}"
@@ -145,6 +138,47 @@ jobs:
 
       - name: Build the existing application
         run: pnpm build
+
+      - name: Verify Cloudflare R2 and product/banner media upload and retrieval
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/r2-media-probe.mts" <<'EOF'
+          const { createUploadUrl, objectExists, readObject } = await import(new URL(`file://${process.env.GITHUB_WORKSPACE}/server/storage.ts`).href);
+          import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
+
+          const config = {
+            endpoint: process.env.S3_ENDPOINT,
+            region: process.env.S3_REGION,
+            bucket: process.env.S3_BUCKET,
+            accessKeyId: process.env.S3_ACCESS_KEY_ID,
+            secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+            forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
+          };
+          if (!config.endpoint || !config.region || !config.bucket || !config.accessKeyId || !config.secretAccessKey) {
+            throw new Error("Required R2 configuration is missing.");
+          }
+          const client = new S3Client({ endpoint: config.endpoint, region: config.region, forcePathStyle: config.forcePathStyle, credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey } });
+          const body = Buffer.from("temporary-staging-media-probe");
+          const keys = [
+            `merchant/staging-product-${process.env.GITHUB_RUN_ID ?? Date.now()}.png`,
+            `merchant/staging-banner-${process.env.GITHUB_RUN_ID ?? Date.now()}.png`,
+          ];
+          try {
+            for (const key of keys) {
+              const signed = await createUploadUrl({ key, contentType: "image/png", size: body.length });
+              const uploaded = await fetch(signed.uploadUrl, { method: "PUT", headers: { "content-type": "image/png", "content-length": String(body.length) }, body });
+              if (!uploaded.ok) throw new Error(`${key}: signed upload returned ${uploaded.status}`);
+              if (!(await objectExists(key))) throw new Error(`${key}: object was not present after upload`);
+              const object = await readObject(key);
+              if (!object || !object.body.equals(body) || object.contentType !== "image/png") throw new Error(`${key}: retrieved object did not match the uploaded content`);
+              console.log(`R2 media probe passed for ${key}`);
+            }
+          } finally {
+            await Promise.all(keys.map((Key) => client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key }))));
+          }
+          EOF
+          pnpm exec tsx "$RUNNER_TEMP/r2-media-probe.mts"
 
       - name: Install cloudflared
         shell: bash
@@ -201,6 +235,7 @@ jobs:
           fi
           printf 'staging_api_url=%s\n' "$tunnel_url" >> "$GITHUB_OUTPUT"
           printf 'STAGING_API_URL=%s\n' "$tunnel_url" >> "$GITHUB_ENV"
+          echo "TEMPORARY_STAGING_API_URL=$tunnel_url"
           {
             echo '## Temporary staging URL'
             echo
@@ -230,6 +265,33 @@ jobs:
           test "$allowed_status" = 204
           test "$disallowed_status" = 403
           echo "CORS checks passed: allowed=${allowed_status}, disallowed=${disallowed_status}."
+
+      - name: Verify security headers and protected admin boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --dump-header "$RUNNER_TEMP/health.headers" --output /dev/null "$STAGING_API_URL/health"
+          for header in \
+            'X-Content-Type-Options: nosniff' \
+            'X-Frame-Options: DENY' \
+            'Referrer-Policy: strict-origin-when-cross-origin' \
+            'Permissions-Policy: camera=(), microphone=(), geolocation=()' \
+            'Strict-Transport-Security: max-age=31536000; includeSubDomains'; do
+            grep --ignore-case --fixed-strings -- "$header" "$RUNNER_TEMP/health.headers" >/dev/null || { echo "::error::Missing security header: $header"; exit 1; }
+          done
+          admin_status="$(curl --silent --output /dev/null --write-out '%{http_code}' "$STAGING_API_URL/api/admin/bootstrap")"
+          test "$admin_status" = 401
+          echo "Security headers passed; unauthenticated admin boundary remains protected with status ${admin_status}."
+          echo 'OAuth is intentionally not configured; authenticated admin operations remain blocked until a real provider is added.'
+
+      - name: Install Chromium for staging API tests
+        run: pnpm exec playwright install chromium
+
+      - name: Run existing API tests against staging instance
+        shell: bash
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.STAGING_API_URL }}
+        run: pnpm exec playwright test tests/e2e/release.spec.ts --grep '^API security:'
 
       - name: Configure temporary Pages deployment
         if: ${{ inputs.deploy_pages }}
