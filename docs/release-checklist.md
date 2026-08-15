@@ -35,7 +35,7 @@ The reconstructed candidate currently passes 23/23 unit tests, 46/46 browser tes
 
 ## Database rehearsal
 
-- [ ] Run `pnpm db:migrate` against a fresh disposable MariaDB/MySQL-compatible database.
+- [ ] Run `pnpm db:migrate` against a fresh disposable PostgreSQL 16 database.
 - [ ] Run `pnpm db:seed` and verify 36 products and 8 collections.
 - [ ] Verify order, payment, inventory, idempotency, and webhook tables.
 - [ ] Verify failed and cancelled payment callbacks release reserved inventory exactly once.

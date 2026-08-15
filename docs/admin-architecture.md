@@ -2,7 +2,7 @@
 
 ## Scope
 
-The merchant control panel extends the existing Express, Drizzle, MySQL-compatible, React, and Wouter application. It does not replace the storefront, the current payment boundary, the existing commerce service, or the GitHub Pages deployment. The public customer experience remains the default route tree; merchant operations live under `/admin` and use server-side `/api/admin/*` endpoints.
+The merchant control panel extends the existing Express, Drizzle, PostgreSQL, React, and Wouter application. It does not replace the storefront, the current payment boundary, the existing commerce service, or the GitHub Pages deployment. The public customer experience remains the default route tree; merchant operations live under `/admin` and use server-side `/api/admin/*` endpoints.
 
 ## Trust boundaries
 
@@ -12,8 +12,8 @@ Every administrative request follows the same order: session authentication, ser
 | --- | --- | --- |
 | Browser admin UI | Navigation, forms, loading and empty states, optimistic presentation only | Server responses |
 | Admin API | Authentication, RBAC, validation, business rules, audit writes | Server domain services |
-| Catalog tables | Product and collection persistence when a database is available | MySQL/TiDB via Drizzle |
-| Admin tables | Categories, promotions, banners, inventory adjustments, audit events | MySQL/TiDB via Drizzle |
+| Catalog tables | Product and collection persistence when a database is available | PostgreSQL via Drizzle |
+| Admin tables | Categories, promotions, banners, inventory adjustments, audit events | PostgreSQL via Drizzle |
 | Demo fallback | Deterministic in-process store when `DATABASE_URL` is absent | Explicitly demo-only memory state |
 | Storefront | Customer-facing rendering and checkout boundary | `/api/catalog` when available, static catalog fallback otherwise |
 

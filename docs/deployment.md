@@ -70,7 +70,7 @@ The custom-domain setup is an external deployment prerequisite and is not a reas
 
 ## Backend deployment boundary
 
-GitHub Pages serves only `dist/public`. The Express API, MySQL/MariaDB database, OAuth provider, official payment adapter, S3-compatible storage, scheduled backups, WAF/edge layer, monitoring, alerting, and distributed rate limiting require separate infrastructure. A successful Pages deployment is evidence of frontend delivery, not evidence that live commerce is operational.
+GitHub Pages serves only `dist/public`. The Express API, PostgreSQL database, OAuth provider, official payment adapter, S3-compatible storage, scheduled backups, WAF/edge layer, monitoring, alerting, and distributed rate limiting require separate infrastructure. A successful Pages deployment is evidence of frontend delivery, not evidence that live commerce is operational.
 
 ## Merchant studio on Pages
 

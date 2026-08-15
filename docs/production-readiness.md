@@ -21,7 +21,7 @@ This reconstructed release candidate is suitable for client demonstration and po
 | Release scan and dependency thresholds | **PASS** | Release scan passed; production and critical dependency audits passed at configured thresholds |
 | OAuth production credentials and redirect URIs | **BLOCKED** | Register the real OAuth application, configure redirect URIs, and store client secrets server-side |
 | Official production payment adapter | **BLOCKED** | Integrate and independently verify an official provider adapter and credentials |
-| Managed production MySQL/MariaDB | **BLOCKED** | Provision managed database infrastructure, access policy, migrations, and operational ownership |
+| Managed production PostgreSQL | **BLOCKED** | Provision managed PostgreSQL infrastructure, access policy, migrations, and operational ownership |
 | Encrypted scheduled backups | **BLOCKED** | Configure encrypted automated backups with retention and access controls |
 | Verified restoration | **BLOCKED** | Execute and record a restoration rehearsal from an encrypted backup |
 | S3-compatible storage | **BLOCKED** | Provision object storage, bucket policy, lifecycle, and private access configuration |
@@ -41,7 +41,7 @@ This evidence belongs to the current reconstructed candidate built from the `Usa
 
 The approved storefront was preserved while the reconstructed production layer added fail-closed environment validation, environment-aware JWT cookies, OAuth error sanitization, request IDs, security headers, CORS allowlisting, request limits, scoped rate limiting, storage-key validation, health/readiness endpoints, sanitized errors, Express 5-compatible SPA fallback, and clean shutdown.
 
-The durable commerce layer adds canonical server-side pricing, atomic inventory reservation, idempotency keys, order/payment transition guards, exact-once inventory release and commit behavior, payment-provider boundaries for mock/sandbox/production modes, HMAC webhook verification, webhook replay protection, amount and order validation, and MySQL/MariaDB migrations for catalog, users, orders, inventory, payments, idempotency, carts, wishlists, and webhook events.
+The durable commerce layer adds canonical server-side pricing, atomic inventory reservation, idempotency keys, order/payment transition guards, exact-once inventory release and commit behavior, payment-provider boundaries for mock/sandbox/production modes, HMAC webhook verification, webhook replay protection, amount and order validation, and PostgreSQL migrations for catalog, users, orders, inventory, payments, idempotency, carts, wishlists, and webhook events.
 
 ## Demo boundary
 
