@@ -88,3 +88,38 @@ This evidence belongs to the **reconstructed** release candidate built from the 
 | Visual regression | Passed | 12/12 reconstructed visual tests passed against the same staging-like server. These are new baselines, not recovered prior-session snapshots. |
 
 The candidate remains **CLIENT DEMO READY**, not production-ready. Live commerce remains blocked until official payment, OAuth, managed database and backup/restore, S3 storage, DNS/TLS, WAF/edge, distributed rate limiting, monitoring, alerting, and production admin identity are provisioned and evidenced. `PAYMENT_MODE=mock` was used only for deterministic rehearsal.
+
+## GitHub Pages verification
+
+The Pages deployment is produced by `.github/workflows/deploy-pages.yml` from `main`. It runs the existing `pnpm build:pages` command, passes the project base path from `actions/configure-pages`, creates a deployment-only `404.html` fallback, uploads `dist/public`, and deploys through the `github-pages` environment. Generated artifacts are not committed.
+
+The verified site is [https://usamabhanbhro.github.io/e-commerce/](https://usamabhanbhro.github.io/e-commerce/). The root document loads, generated assets use `/e-commerce/assets/` paths, and direct navigation to `/e-commerce/shop` returns the application shell through the Pages fallback so the client-side router can resolve the route. The Pages bundle was audited for localhost API URLs, database credentials, JWT/payment/webhook/OAuth secrets, and development configuration; no forbidden production values were found.
+
+## Portfolio screenshot policy
+
+Documentation screenshots must be captured from the actual deployed Pages application or the current production-like local candidate. They must not be mockups, generated artwork, or altered images that imply unsupported functionality. Screenshots belong under `docs/assets/`, should be compressed to a GitHub-friendly size, and should show only public demonstration data. Do not capture real credentials or personal information.
+
+## Complete gate list
+
+The intended complete gate sequence is:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm check
+pnpm lint
+pnpm test
+pnpm build
+pnpm build:pages
+pnpm scan:release
+pnpm audit:prod
+pnpm audit:critical
+pnpm test:e2e
+pnpm test:visual
+git diff --check
+```
+
+A gate may only be described as passed when it has been executed against the current repository state. If a local E2E invocation requires an explicitly documented staging-like server or browser executable, record both the initial environment failure and the successful rerun rather than silently omitting the failure.
+
+## Final screenshot inspection
+
+The committed screenshot gallery is sourced from the corrected live Pages deployment. Visual inspection confirmed that `docs/assets/homepage.png` shows the editorial storefront hero, featured edits, product imagery, journal content, collection links, and footer; `docs/assets/catalog.png` shows the `Shop all` page with eight demo products and the shared storefront shell. The product-detail, checkout, and mobile captures were taken from the same corrected deployment at desktop or 390px responsive viewports. These images are portfolio evidence of the public demo surface, not production-commerce evidence.

@@ -1,45 +1,57 @@
-# Production readiness
+# Production-readiness matrix
 
-> **Classification: CLIENT DEMO READY.**
+## Classification
 
-This release candidate is a **reconstructed implementation created after loss of the previously validated worktree**. It is intentionally a new candidate built on the existing `Usamabhanbhro/e-commerce` baseline; it is not a recovered copy and must not be described as the same previously validated commit.
+> **CLIENT DEMO READY**
 
-## Reconstruction summary
+This reconstructed release candidate is suitable for client demonstration and portfolio review. It is not a production commerce system. The matrix below distinguishes repository evidence from external infrastructure that has not been provisioned.
 
-The approved storefront was preserved, including its catalog presentation, imagery, typography, routes, responsive layout, checkout surface, mock payment UI, and visual identity. The reconstructed production layer adds fail-closed staging/production configuration, environment-aware JWT cookies, OAuth error sanitization, request IDs, security headers, CORS allowlisting, request limits, scoped rate limiting, storage-key validation, health/readiness endpoints, sanitized errors, Express 5-compatible SPA fallback, and clean shutdown.
+## Status matrix
 
-The durable commerce layer adds canonical server-side pricing, atomic inventory reservation, idempotency keys, order/payment transition guards, exact-once inventory release and commit behavior, payment-provider boundaries for mock/sandbox/production modes, HMAC webhook verification, webhook replay protection, amount and order validation, and MySQL/MariaDB migrations for catalog, users, orders, inventory, payments, idempotency, carts, wishlists, and webhook events. No real payment-provider API or credentials have been invented.
-
-The test and operations layer adds 23 unit tests, 46 functional/security browser tests, 12 reconstructed visual baselines, CI quality gates, a production-like startup probe, secret/legacy-brand/local-runtime scanning, database migration and seed scripts, and this documentation set.
-
-## Validation status
-
-| Area | Status | Evidence |
+| Requirement | Status | Evidence or remaining requirement |
 | --- | --- | --- |
-| Frozen dependency install | Passed | `pnpm install --frozen-lockfile` |
-| TypeScript and lint | Passed | `pnpm check`, `pnpm lint` |
-| Unit tests | Passed | 23/23 tests |
-| Production build | Passed | `pnpm build` |
-| Pages build | Passed | `pnpm build:pages` |
-| Release scan | Passed | `pnpm scan:release` |
-| Production dependency gate | Passed at high-severity threshold | `pnpm audit:prod`; two moderate advisories remain |
-| Critical dependency gate | Passed | `pnpm audit:critical`; no critical advisories remain |
-| Browser regression | Passed | 46/46 tests against the rebuilt staging-like server |
-| Visual regression | Passed | 12/12 new reconstructed snapshots |
-| Real database rehearsal | Passed | MariaDB migrations, 36 products, 8 collections, and commerce integrity probe |
-| Live runtime probes | Passed | health, readiness, headers, CORS, authorization, webhook rejection, catalog, SPA fallback |
+| Automated unit tests | **PASS** | 23/23 unit tests passed on the current candidate |
+| TypeScript checks and lint | **PASS** | `pnpm check` and `pnpm lint` passed |
+| Browser tests | **PASS** | 46/46 functional Playwright tests passed against the rebuilt production artifact |
+| Visual tests | **PASS** | 12/12 tests passed against a reconstructed baseline set; these are not historical snapshots |
+| Database rehearsal | **PASS** | Idempotent migrations and deterministic seed passed; 36 products and 8 collections were seeded |
+| Durable commerce invariants | **PASS** | Inventory reservation, failed-payment release, payment idempotency, webhook replay handling, and concurrent reservation rehearsal passed |
+| Runtime and security probes | **PASS** | Health/readiness, headers, CORS, authorization, OAuth error handling, webhook rejection, storage validation, and unknown API probes passed |
+| GitHub Pages deployment | **PASS** | GitHub Actions build and deploy jobs completed successfully for the `/e-commerce/` project site |
+| Release scan and dependency thresholds | **PASS** | Release scan passed; production and critical dependency audits passed at configured thresholds |
+| OAuth production credentials and redirect URIs | **BLOCKED** | Register the real OAuth application, configure redirect URIs, and store client secrets server-side |
+| Official production payment adapter | **BLOCKED** | Integrate and independently verify an official provider adapter and credentials |
+| Managed production MySQL/MariaDB | **BLOCKED** | Provision managed database infrastructure, access policy, migrations, and operational ownership |
+| Encrypted scheduled backups | **BLOCKED** | Configure encrypted automated backups with retention and access controls |
+| Verified restoration | **BLOCKED** | Execute and record a restoration rehearsal from an encrypted backup |
+| S3-compatible storage | **BLOCKED** | Provision object storage, bucket policy, lifecycle, and private access configuration |
+| Production `OWNER_OPEN_ID` | **BLOCKED** | Provision and verify the real administrative identity in the production environment |
+| DNS | **BLOCKED** | Configure a selected domain and verify DNS ownership and routing |
+| TLS | **BLOCKED** | Verify certificate issuance and HTTPS enforcement for the selected production domain |
+| WAF/edge protection | **BLOCKED** | Provision and tune the production edge security layer |
+| Distributed rate limiting | **BLOCKED** | Replace single-runtime assumptions with shared production rate-limit state |
+| Centralized monitoring | **BLOCKED** | Configure application, infrastructure, and payment observability |
+| Alerting | **BLOCKED** | Configure actionable alerts, ownership, escalation, and incident evidence |
+| GitHub Pages backend hosting | **NOT APPLICABLE** | GitHub Pages is intentionally frontend/static hosting; the API requires separate infrastructure |
+| Live customer commerce | **NOT APPLICABLE** | The current release is a demo and does not claim operational customers, fulfillment, or live payment capture |
 
-## Known differences from the lost candidate
+## Reconstruction and evidence policy
 
-The previous candidate’s commit, browser artifacts, and visual baselines were permanently lost. This implementation was rebuilt from the existing GitHub baseline and the verified requirements. Its 12 visual snapshots are new reconstructed baselines. The reconstructed baseline has 23 unit tests and a 46-test browser suite; prior-session evidence must not be treated as evidence for this candidate. Exact dependency versions, generated asset hashes, database identifiers, and commit history therefore differ.
+This evidence belongs to the current reconstructed candidate built from the `Usamabhanbhro/e-commerce` baseline after the previous worktree was lost. It is not evidence from the lost prior worktree. The 12 visual snapshots are new reconstructed baselines and must not be described as recovered historical snapshots.
 
-The local browser gate used the available system Chromium with video capture disabled by default because the sandbox did not contain the Playwright-managed browser and ffmpeg bundles. CI retains managed Chromium installation and can opt into failure video capture with `PLAYWRIGHT_VIDEO=on` if the runner provides the required bundle.
+The approved storefront was preserved while the reconstructed production layer added fail-closed environment validation, environment-aware JWT cookies, OAuth error sanitization, request IDs, security headers, CORS allowlisting, request limits, scoped rate limiting, storage-key validation, health/readiness endpoints, sanitized errors, Express 5-compatible SPA fallback, and clean shutdown.
 
-## External blockers before live commerce
+The durable commerce layer adds canonical server-side pricing, atomic inventory reservation, idempotency keys, order/payment transition guards, exact-once inventory release and commit behavior, payment-provider boundaries for mock/sandbox/production modes, HMAC webhook verification, webhook replay protection, amount and order validation, and MySQL/MariaDB migrations for catalog, users, orders, inventory, payments, idempotency, carts, wishlists, and webhook events.
 
-Live commerce is **not operational** until the following external requirements are configured and verified: OAuth provider credentials and redirect registration; an official payment adapter and provider credentials/documentation; a managed production MySQL-compatible database; encrypted scheduled backups and a verified restore; S3-compatible storage credentials and policy; production `OWNER_OPEN_ID`; production DNS; TLS certificates; WAF/edge protection; distributed rate limiting; and centralized monitoring and alerting.
+## Demo boundary
 
-`PAYMENT_MODE=mock` is suitable only for deterministic demo and rehearsal flows. `PAYMENT_MODE=sandbox` remains deterministic and carries sandbox metadata. `PAYMENT_MODE=production` fails closed unless the approved official adapter is configured. No production payment claim is made by this candidate.
+The public Pages checkout is a demonstration surface. Its payment selectors and outcomes are mock or sandbox boundaries and do not process real card, wallet, or bank credentials. No fake customers, transactions, payment settlements, or production operational evidence are included in this repository.
+
+`PAYMENT_MODE=mock` is suitable only for deterministic demo and rehearsal flows. `PAYMENT_MODE=sandbox` remains deterministic and carries sandbox metadata. `PAYMENT_MODE=production` fails closed unless the approved official adapter is configured.
+
+## Promotion criteria
+
+The classification may change only after the blocked requirements are provisioned and independently verified. A documentation update alone is not sufficient. The promotion record should include environment configuration, deployment identifiers, payment-provider verification, database and backup/restore evidence, security controls, monitoring and alerting evidence, and a fresh run of the repository’s complete validation gates.
 
 ## References
 

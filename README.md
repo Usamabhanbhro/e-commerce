@@ -1,91 +1,200 @@
-# Usamabhanbhro E-commerce Showcase
+# Usamabhanbhro E-Commerce
 
-Usamabhanbhro is an original, client-presentable premium fashion and objects storefront demonstration. It preserves an editorial luxury direction while adding a complete local commerce journey: catalog discovery, collection browsing, product detail, search, wishlist, cart, checkout, order confirmation, account dashboard, journal, about, and contact.
+A reconstructed, client-presentable e-commerce showcase for **Usamabhanbhro**. The project demonstrates how an editorial storefront can be paired with a typed React frontend, a security-conscious Express API boundary, durable commerce workflows, MariaDB persistence, payment-provider interfaces, automated testing, and GitHub Pages deployment.
 
-This is intentionally a **frontend showcase**, not a production store. Product data, cart state, wishlist state, newsletter signup, contact form, and orders are local mock behavior. The checkout never asks for card numbers, never calls a payment API, never sends personal information to an external service, and never represents a simulated result as a real transaction.
+> **Current classification: CLIENT DEMO READY**
+>
+> This is a reconstructed release candidate created from the existing `Usamabhanbhro/e-commerce` baseline after loss of the previously validated worktree. It is not a recovered copy of the lost implementation, and it is not a production commerce deployment.
+
+## Live demo
+
+**[Open the deployed storefront](https://usamabhanbhro.github.io/e-commerce/)**
+
+The live site is a static frontend demonstration hosted on GitHub Pages. The deployment is built from `main` by [GitHub Actions](https://github.com/Usamabhanbhro/e-commerce/actions), uses the existing `pnpm build:pages` command, preserves the `/e-commerce/` project base path, and supports client-side routes through the generated Pages fallback.
+
+## What the project demonstrates
+
+The storefront gives a potential client a realistic product-discovery and checkout journey while giving a technical reviewer a compact example of frontend architecture, backend boundaries, commerce integrity, security controls, database modeling, automated validation, and CI/CD. The public Pages demo intentionally uses local mock behavior; it does not collect real payment credentials or claim that live commerce is operational.
+
+## Demonstrated storefront journeys
+
+| Area | Verified capability |
+| --- | --- |
+| Storefront | Editorial homepage, responsive navigation, mobile drawer, wishlist and bag counts |
+| Catalog | Product grid, category filtering, sorting, availability, variants, related products, and accessible image text |
+| Collections | Collection index and collection-specific product browsing |
+| Product detail | Gallery, variants, quantity controls, wishlist, add-to-bag, and related products |
+| Search | Local matching, query state, and empty results state |
+| Cart | Local persistence, quantity changes, removal, subtotal, delivery estimate, empty state, and suggestions |
+| Checkout surface | Contact, shipping, delivery method, order summary, validation, and mock outcome states |
+| Account | Mock customer dashboard and authentication boundary pages |
+| Commerce layer | Server-side pricing, order transitions, inventory reservation, idempotency, and webhook replay protection in the backend rehearsal |
+| Payments | Provider-independent interface with deterministic mock/sandbox boundaries; no real provider credentials are included |
+| Editorial content | Journal index, article pages, about page, contact state, and styled not-found route |
+| Responsive UI | Desktop, tablet, and mobile layouts with reduced-motion support and keyboard-safe controls |
+
+The public demo’s catalog, cart, wishlist, newsletter, contact, and order interactions are showcase behavior. The backend contains the durable commerce implementation and test boundaries, but GitHub Pages hosts only the frontend.
+
+## Selected routes
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Storefront homepage |
+| `/shop` | Filterable and sortable product catalog |
+| `/collections` | Collection overview |
+| `/collections/:slug` | Collection detail and products |
+| `/products/:slug` | Product detail and purchase surface |
+| `/search` | Local search |
+| `/cart` | Shopping bag |
+| `/checkout` | Demo-only checkout |
+| `/order-confirmation` | Local mock confirmation |
+| `/account` | Account dashboard boundary |
+| `/wishlist` | Saved products |
+| `/journal` and `/journal/:slug` | Editorial journal and article pages |
+| `/about` and `/contact` | Brand and contact surfaces |
 
 ## Technology stack
 
-- React 19 with TypeScript
-- Vite 7 and Wouter client-side routing
-- CSS-first responsive editorial system
-- LocalStorage-backed mock commerce state
-- Vitest for payment connector tests
-- Pexels-hosted presentation imagery used as temporary visual assets
+| Layer | Technologies used in this repository |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite 7, Wouter, Tailwind CSS v4, Radix UI, Framer Motion |
+| Backend | Node.js 22, Express 5, TypeScript, esbuild |
+| Data layer | Drizzle ORM, MySQL/MariaDB, idempotent SQL migrations and deterministic seed scripts |
+| Validation | TypeScript compiler, Vitest, Playwright, reconstructed visual snapshots, npm-style dependency audits, release scan |
+| Delivery | pnpm 10.34.5, GitHub Actions, GitHub Pages |
+| Runtime boundaries | Environment validation, CORS allowlisting, security headers, request IDs, scoped rate limits, sanitized errors, HMAC webhook verification |
 
-## Features
+## Architecture at a glance
 
-- Sticky responsive header with desktop navigation, mobile drawer, bag count, and wishlist count.
-- Original product catalog with category filters, sorting, hover imagery, variants, availability, related products, and accessible alt text.
-- Local cart and wishlist persistence with quantity controls, removal, subtotal, delivery estimate, empty states, and suggested pieces.
-- Demo checkout with contact details, shipping, delivery method, promo placeholder, order summary, validation, processing, success, pending, failed, and cancelled states.
-- Provider-agnostic Pakistani payment architecture with text-based demo selectors for JazzCash, Easypaisa, SadaPay, NayaPay, and Cash on Delivery.
-- Editorial journal, article pages, collection index/detail pages, account dashboard, about page, contact success state, and custom 404.
-- Reduced-motion support, keyboard-safe controls, responsive layouts for desktop, tablet, and mobile, and no dead-end public links.
+The repository separates the browser application, server/API boundary, shared contracts, and database schema. The frontend is independently deployable as a static Pages artifact; the backend remains a separate Node/Express service for any future staging or production environment.
 
-## Route map
-
-| Route | Purpose |
-|---|---|
-| `/` | Premium homepage and showcase entry |
-| `/shop` | Filterable and sortable all-products grid |
-| `/collections` | Collection overview |
-| `/collections/:slug` | Editorial collection detail and products |
-| `/products/:slug` | Gallery, variants, quantity, bag, wishlist, and related products |
-| `/search` | Local search with matching and empty states |
-| `/cart` | Interactive local shopping bag |
-| `/checkout` | Demo-only checkout and payment selection |
-| `/order-confirmation` | Local mock order confirmation |
-| `/account` | Mock customer dashboard |
-| `/wishlist` | Local saved-products view |
-| `/journal` | Editorial index |
-| `/journal/:slug` | Reusable article page |
-| `/about` | Brand and project concept |
-| `/contact` | Demo contact form |
-| any invalid route | Styled 404 page |
-
-## Architecture
-
-The UI is separated from commerce contracts in `client/src/lib`. `catalog.ts` owns the product and editorial domain model. `commerce.tsx` owns local cart, wishlist, and order state. `payment.ts` defines the `PaymentProvider` interface and registry, so a future secure server-side connector can replace any demo adapter without rewriting checkout components.
-
-The intended production boundary is:
-
-```text
-Checkout UI → Order Service → Payment Service → PaymentProvider → Provider adapter
+```mermaid
+flowchart LR
+  Browser[React + Vite storefront] --> Router[Wouter client-side routes]
+  Router --> DemoState[Local demo state and catalog]
+  Browser -. optional authenticated calls .-> API[Express API boundary]
+  API --> Auth[OAuth/session and authorization boundary]
+  API --> Commerce[Commerce service]
+  Commerce --> Payment[Payment provider interface]
+  Commerce --> DB[(MySQL/MariaDB via Drizzle)]
+  Payment --> Webhook[Signed webhook and replay protection]
+  GitHub[Git push to main] --> Actions[GitHub Actions]
+  Actions --> PagesBuild[pnpm build:pages]
+  PagesBuild --> Pages[GitHub Pages static frontend]
 ```
 
-The current implementation stops at local simulation. It contains no credentials, merchant IDs, API keys, undocumented endpoints, or provider-specific secrets.
+See [`docs/architecture.md`](docs/architecture.md) for the detailed frontend, backend, commerce, database, and deployment explanation.
 
-## Supported payment connector architecture
+## Testing and evidence
 
-| Connector | Current behavior | Production note |
-|---|---|---|
-| JazzCash | Local success, pending, failure, and cancellation simulation | Requires a secure backend adapter and merchant configuration |
-| Easypaisa | Local success, pending, failure, and cancellation simulation | Requires a secure backend adapter and merchant configuration |
-| SadaPay | Local success, pending, failure, and cancellation simulation | Requires a secure backend adapter and merchant configuration |
-| NayaPay | Local success, pending, failure, and cancellation simulation | Requires a secure backend adapter and merchant configuration |
-| Cash on Delivery | Local order creation and pending collection simulation | Future order service should record collection and cancellation events |
+The current reconstructed candidate records the following evidence:
+
+| Gate | Result |
+| --- | --- |
+| Unit tests | **23/23 passed** |
+| Functional browser tests | **46/46 passed** |
+| Visual tests | **12/12 passed against reconstructed baselines** |
+| TypeScript and lint | Passed |
+| Production and Pages builds | Passed |
+| Database rehearsal | Passed; 36 products and 8 collections seeded |
+| Runtime/security probes | Passed for health, readiness, headers, CORS, authorization, webhook rejection, storage validation, and SPA fallback |
+| GitHub Pages deployment | Passed; build and deploy jobs completed successfully |
+
+The 12 visual snapshots are **new reconstructed baselines** for this candidate. They are not historical snapshots recovered from the lost worktree. See [`docs/qa.md`](docs/qa.md) for the test gates and evidence policy.
 
 ## Local development
 
+### Prerequisites
+
+Use Node.js 22 and pnpm 10.34.5. A database is not required for the static frontend showcase, but the backend rehearsal requires a reachable MySQL/MariaDB instance and the server-only variables described in [`docs/environment.md`](docs/environment.md).
+
+### Install and run the frontend
+
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Useful verification commands:
+Vite serves the client on its development port and exposes the existing browser application. Do not place server-only secrets in `VITE_*` variables: Vite variables are eligible for inclusion in browser assets.
+
+### Run repository checks
 
 ```bash
 pnpm check
 pnpm lint
 pnpm test
 pnpm build
+pnpm build:pages
+pnpm scan:release
+pnpm audit:prod
+pnpm audit:critical
+pnpm test:e2e
+pnpm test:visual
 ```
 
-## Demo-mode disclaimer
+The browser workflows install the managed Chromium dependency in CI. For a local staging-like run, follow the environment and QA instructions rather than inventing production credentials.
 
-All payment outcomes, order references, customer details, newsletter submissions, and contact submissions are showcase-only. Do not enter real financial credentials or sensitive personal information. Before production, add a secure backend, real provider contracts, server-side validation, authenticated customer storage, an order service, a webhook handler, fraud controls, and environment-managed secrets.
+### Pages deployment
 
-## Verification status
+Pushes to `main` and manual workflow dispatches run [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml). The workflow installs the locked pnpm dependency graph, calls the existing `pnpm build:pages` script, passes the Pages project base path into Vite, creates a transient `404.html` fallback from the generated entry document, uploads `dist/public`, and deploys it through the `github-pages` environment. Generated build files are not committed.
 
-The final project is intended to be verified through the commands above plus route smoke testing and the journey `Home → Collection → Product → Bag → Checkout → Demo Confirmation`. The repository-wide source search must return no intentional references to the replaced source brand or its campaign language.
+GitHub Pages hosts the static frontend only. It does not host the Express API, MySQL/MariaDB database, payment adapters, OAuth provider, scheduled backups, or operational infrastructure.
+
+See [`docs/deployment.md`](docs/deployment.md) for deployment details and custom-domain readiness.
+
+## Environment and security boundaries
+
+The checked-in [`.env.example`](.env.example) documents the server configuration shape. Development may use mock payment behavior and local origins. Staging-like and production-like environments require validated secrets, database connectivity, and explicit origin configuration.
+
+Safe browser configuration may include public values such as a Pages base path or a public application identifier. Server-only values must never enter the Pages bundle, including database credentials, JWT secrets, payment credentials, webhook secrets, OAuth client secrets, and administrative identity values. See [`docs/environment.md`](docs/environment.md) for the complete boundary.
+
+## Production readiness
+
+This release is **not production-ready**. Live commerce remains blocked until the following external requirements are independently provisioned and evidenced:
+
+- OAuth credentials and registered redirect URIs.
+- An official production payment adapter and provider credentials.
+- Managed production MySQL/MariaDB.
+- Encrypted scheduled backups and a verified restoration procedure.
+- S3-compatible storage and production policy.
+- Production `OWNER_OPEN_ID`.
+- DNS, TLS, and WAF/edge protection.
+- Distributed rate limiting, centralized monitoring, and alerting.
+
+Mock payment outcomes are suitable only for deterministic demos and rehearsal. They must not be represented as real transactions. The full matrix is in [`docs/production-readiness.md`](docs/production-readiness.md).
+
+## Screenshots
+
+The screenshots below are captured from the actual deployed application and stored under [`docs/assets/`](docs/assets/).
+
+### Storefront and catalog
+
+![Usamabhanbhro storefront homepage](docs/assets/homepage.png)
+
+![Usamabhanbhro product catalog](docs/assets/catalog.png)
+
+### Product and checkout journey
+
+![Usamabhanbhro product detail](docs/assets/product-detail.png)
+
+![Usamabhanbhro checkout surface](docs/assets/checkout.png)
+
+### Responsive presentation
+
+![Usamabhanbhro mobile storefront](docs/assets/mobile-home.png)
+
+## Documentation map
+
+| Document | Purpose |
+| --- | --- |
+| [`docs/architecture.md`](docs/architecture.md) | Application, commerce, data, security, and deployment architecture |
+| [`docs/qa.md`](docs/qa.md) | Validation gates, test evidence, database rehearsal, and release hygiene |
+| [`docs/deployment.md`](docs/deployment.md) | GitHub Pages workflow, artifact behavior, routing fallback, and domain setup |
+| [`docs/environment.md`](docs/environment.md) | Development, staging-like, production-like, and browser-secret boundaries |
+| [`docs/production-readiness.md`](docs/production-readiness.md) | PASS/BLOCKED/NOT APPLICABLE production-readiness matrix |
+| [`docs/release-checklist.md`](docs/release-checklist.md) | Release classification and pre-release checklist |
+| [`PAGE_TOPOLOGY.md`](PAGE_TOPOLOGY.md) | Existing page and route topology |
+
+## Important demo disclaimer
+
+Do not enter real financial credentials or sensitive personal information into the showcase. The public checkout is a local demonstration surface. No claim is made that live payment processing, live customer accounts, production fulfillment, or production operations are available.
