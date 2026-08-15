@@ -27,6 +27,19 @@ test.describe("reconstructed storefront visual baselines", () => {
       await page.setViewportSize({ width, height });
       await page.goto(route, { waitUntil: "networkidle" });
       await expect(page.locator("body")).not.toBeEmpty();
+      await page.evaluate(async () => {
+        const images = Array.from(document.images);
+        images.forEach((image) => {
+          image.loading = "eager";
+          image.scrollIntoView({ block: "center" });
+        });
+        window.scrollTo(0, 0);
+        await Promise.all(images.map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => {
+          image.addEventListener("load", () => resolve(), { once: true });
+          image.addEventListener("error", () => resolve(), { once: true });
+        })));
+      });
+      await page.evaluate(() => window.scrollTo(0, 0));
       await expect(page).toHaveScreenshot(`${name}.png`, {
         fullPage: true,
         animations: "disabled",
