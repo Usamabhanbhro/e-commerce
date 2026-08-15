@@ -335,7 +335,7 @@ jobs:
         shell: bash
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_API_URL }}
-        run: pnpm exec playwright test tests/e2e/release.spec.ts --grep '^API security:'
+        run: pnpm exec playwright test tests/e2e/release.spec.ts --grep 'API security:'
 
       - name: Configure temporary Pages deployment
         if: ${{ inputs.deploy_pages }}
