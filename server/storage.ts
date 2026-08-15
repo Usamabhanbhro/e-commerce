@@ -1,4 +1,4 @@
-import { GetObjectCommand, HeadBucketCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { validStorageKey } from "./security";
 
@@ -59,6 +59,13 @@ export async function readObject(key: string) {
 export async function pingStorage() {
   if (!storageConfigured()) return false;
   try { const { client: s3, bucket } = getClient(); await s3.send(new HeadBucketCommand({ Bucket: bucket })); return true; } catch { return false; }
+}
+
+export async function deleteObject(key: string) {
+  if (!validStorageKey(key)) throw Object.assign(new Error("Invalid storage key."), { status: 400 });
+  const { client: s3, bucket } = getClient();
+  await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+  return { key, deleted: true };
 }
 
 export async function objectExists(key: string) {
