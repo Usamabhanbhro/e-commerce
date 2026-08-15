@@ -220,6 +220,11 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
+  test: {
+    root: path.resolve(import.meta.dirname),
+    include: ["client/src/**/*.test.ts", "server/**/*.test.ts"],
+    exclude: ["node_modules", "dist"],
+  },
   server: {
     port: 3000,
     strictPort: false, // Will find next available port if 3000 is busy

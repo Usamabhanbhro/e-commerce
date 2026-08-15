@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm scan:release
+      - run: pnpm build
+      - run: pnpm build:pages
+      - run: pnpm audit:prod
+      - run: pnpm audit:critical
+      - name: Probe production-like server startup
+        run: |
+          set -e
+          NODE_ENV=production APP_ENV=staging PORT=4177 DATABASE_URL=mysql://ci:ci@127.0.0.1:3306/ci JWT_SECRET=ci-jwt-secret-ci-jwt-secret PAYMENT_WEBHOOK_SECRET=ci-webhook-secret-ci-webhook-secret FRONTEND_ORIGIN=http://127.0.0.1:4177 ALLOWED_ORIGINS=http://127.0.0.1:4177 PAYMENT_MODE=mock node dist/index.js > /tmp/usama-server.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:4177/health && exit 0
+            sleep 1
+          done
+          cat /tmp/usama-server.log
+          exit 1
