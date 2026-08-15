@@ -250,10 +250,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error "$STAGING_API_URL/health"
-          echo
-          curl --fail --silent --show-error "$STAGING_API_URL/ready"
-          echo
+          for endpoint in health ready; do
+            verified=false
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent --show-error --retry 2 --retry-all-errors --retry-delay 1 --connect-timeout 5 --max-time 15 "$STAGING_API_URL/$endpoint"; then
+                verified=true
+                echo
+                break
+              fi
+              sleep 2
+            done
+            if [ "$verified" != true ]; then
+              echo "::error::Temporary tunnel did not serve /$endpoint after DNS/connectivity retries."
+              cat "$RUNNER_TEMP/cloudflared.log"
+              exit 1
+            fi
+          done
           allowed_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             -X OPTIONS \
             -H 'Origin: https://usamabhanbhro.github.io' \
