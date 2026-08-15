@@ -178,3 +178,17 @@ The current database-dialect migration was exercised against a fresh local Postg
 The sandbox PostgreSQL rehearsal is not a production deployment. A real migration still requires an operator-approved source backup, a source-to-target extraction/transform/load run, parent-first relationship validation, row-count reconciliation, sequence repair, and rollback rehearsal. No legacy source database or production dataset was connected to this task, so no source-to-target migration count is claimed.
 
 The repository remains **staging-prepared rather than remotely provisioned**. No managed PostgreSQL endpoint, staging credentials, OAuth client, S3-compatible bucket, DNS/TLS edge, monitoring stack, or backup service was connected. Hosted CI can validate the container and static build, but remote API/database/storage smoke tests require dedicated staging infrastructure and secrets.
+
+
+## Final hosted PostgreSQL verification — 15 August 2026
+
+The PostgreSQL migration commit `8349a3b` passed hosted CI’s PostgreSQL migration/integrity checks but initially exposed a container-only reproducibility issue: the Dockerfile did not copy the repository `.npmrc`, so frozen pnpm installs defaulted to `autoInstallPeers=true` while the lockfile records `false`. The targeted fix in commit `c6021f9` copies `.npmrc` into both build and runtime dependency stages; no dependency or application behavior was weakened.
+
+| Hosted gate | Result | Evidence |
+| --- | --- | --- |
+| CI quality workflow | Passed | [Run 31864792095](https://github.com/Usamabhanbhro/e-commerce/actions/runs/31864792095) completed successfully for `c6021f9`. |
+| PostgreSQL staging/integrity workflow | Passed | [Run 31864792100](https://github.com/Usamabhanbhro/e-commerce/actions/runs/31864792100) passed type-check, unit tests, PostgreSQL migration/seed/verifier, build, release scan, and hosted Docker image build. |
+| GitHub Pages deployment | Passed | [Run 31864792078](https://github.com/Usamabhanbhro/e-commerce/actions/runs/31864792078) completed successfully. |
+| Public storefront | Passed | [https://usamabhanbhro.github.io/e-commerce/](https://usamabhanbhro.github.io/e-commerce/) loaded after the final deployment and rendered the expected demo storefront. |
+
+The only hosted failure was the first container build for `8349a3b`; it was diagnosed from the runner logs and corrected immediately in `c6021f9`. The repository is now PostgreSQL-only in runtime, Docker, CI, and staging configuration. Intentional historical references remain only in migration-boundary documentation and package-manager optional-peer metadata.
