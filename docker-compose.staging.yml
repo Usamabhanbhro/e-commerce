@@ -1,18 +1,17 @@
 services:
-  mariadb:
-    image: mariadb:11
+  postgres:
+    image: postgres:16
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: usamabhanbhro_staging
-      MARIADB_USER: staging_app
-      MARIADB_PASSWORD: replace-with-local-staging-db-password
-      MARIADB_ROOT_PASSWORD: replace-with-local-staging-root-password
+      POSTGRES_DB: usamabhanbhro_staging
+      POSTGRES_USER: staging_app
+      POSTGRES_PASSWORD: replace-with-local-staging-db-password
     ports:
-      - "3307:3306"
+      - "5433:5432"
     volumes:
-      - staging_mariadb:/var/lib/mysql
+      - staging_postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$${MARIADB_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -31,5 +30,5 @@ services:
       - staging_minio:/data
 
 volumes:
-  staging_mariadb:
+  staging_postgres:
   staging_minio:

@@ -13,7 +13,21 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: staging_ci
+          POSTGRES_USER: staging_ci
+          POSTGRES_PASSWORD: staging_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U staging_ci -d staging_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,6 +51,14 @@ jobs:
 
       - name: Unit tests
         run: pnpm test
+
+      - name: Verify PostgreSQL migration and integrity
+        env:
+          DATABASE_URL: postgresql://staging_ci:staging_ci@127.0.0.1:5432/staging_ci
+        run: |
+          pnpm db:migrate
+          pnpm db:seed
+          pnpm db:verify
 
       - name: Build production server and Pages artifact
         run: |

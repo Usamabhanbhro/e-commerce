@@ -1,23 +1,39 @@
-import mysql from "mysql2/promise";
-import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
+import { Pool } from "pg";
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../drizzle/schema";
 
-let pool: mysql.Pool | null = null;
-let db: MySql2Database<typeof schema> | null = null;
+let pool: Pool | null = null;
+let db: NodePgDatabase<typeof schema> | null = null;
+
+function getPool() {
+  if (!process.env.DATABASE_URL) return null;
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: Number(process.env.DB_POOL_SIZE ?? 10),
+      keepAlive: true,
+    });
+  }
+  return pool;
+}
 
 export async function getDb() {
-  if (!process.env.DATABASE_URL) return null;
-  if (!db) {
-    pool = mysql.createPool({ uri: process.env.DATABASE_URL, connectionLimit: Number(process.env.DB_POOL_SIZE ?? 10), enableKeepAlive: true, waitForConnections: true });
-    db = drizzle(pool, { schema, mode: "default" });
-  }
+  const activePool = getPool();
+  if (!activePool) return null;
+  if (!db) db = drizzle(activePool, { schema });
   return db;
 }
 
 export async function pingDatabase(): Promise<boolean> {
-  if (!process.env.DATABASE_URL) return false;
-  const connection = await mysql.createConnection(process.env.DATABASE_URL);
-  try { await connection.query("SELECT 1"); return true; } finally { await connection.end(); }
+  const activePool = getPool();
+  if (!activePool) return false;
+  const connection = await activePool.connect();
+  try {
+    await connection.query("SELECT 1");
+    return true;
+  } finally {
+    connection.release();
+  }
 }
 
 export async function closeDatabase() {

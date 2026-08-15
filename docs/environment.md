@@ -17,7 +17,7 @@ Any variable prefixed with `VITE_` is eligible for browser exposure. Treat it as
 | `VITE_OAUTH_PORTAL_URL` | Yes, if the public portal URL is intended | Optional | Public portal URL | Optional; do not add client secrets |
 | `VITE_APP_ID` | Yes, if it is a public application identifier | Optional | Public application identifier | Optional |
 | `PORT` | No browser use | Local server port | Runtime listener port | Not used by static Pages artifact |
-| `DATABASE_URL` | **Never** | Local MariaDB/MySQL URL | Managed database URL | **Never** |
+| `DATABASE_URL` | **Never** | Local PostgreSQL URL | Managed PostgreSQL URL | **Never** |
 | `JWT_SECRET` | **Never** | Local-only random value | Managed secret, at least 32 characters | **Never** |
 | `PAYMENT_WEBHOOK_SECRET` | **Never** | Local-only random value | Managed secret, at least 32 characters | **Never** |
 | `PAYMENT_MODE` | No; server policy | `mock` | `sandbox` or production policy | Not used |
@@ -29,6 +29,12 @@ Any variable prefixed with `VITE_` is eligible for browser exposure. Treat it as
 | `OAUTH_CLIENT_SECRET` | **Never** | Local secret if needed | Managed secret | **Never** |
 | `OWNER_OPEN_ID` | **Never** | Local test/admin identity | Provisioned production admin identity | **Never** |
 | `TRUST_PROXY` | No; server topology setting | `false` | Explicitly set for the actual proxy topology | Not used |
+| `S3_ENDPOINT` | **Never** | Local MinIO endpoint | Managed S3-compatible endpoint | **Never** |
+| `S3_REGION` | **Never** | `us-east-1` | Provider region | **Never** |
+| `S3_BUCKET` | **Never** | Local staging bucket | Dedicated private staging bucket | **Never** |
+| `S3_ACCESS_KEY_ID` | **Never** | Local MinIO key | Dedicated staging key | **Never** |
+| `S3_SECRET_ACCESS_KEY` | **Never** | Local MinIO secret | Managed staging secret | **Never** |
+| `S3_FORCE_PATH_STYLE` | **Never** | `true` for MinIO | Provider-specific | **Never** |
 
 The checked-in [`.env.example`](../.env.example) is a template only. It contains placeholders and must not be copied into a public deployment with real credentials.
 
@@ -45,11 +51,11 @@ The frontend can run without a database because the public catalog and showcase 
 
 ## Staging-like server rehearsal
 
-A staging-like backend rehearsal requires a reachable MySQL/MariaDB database and random non-production secrets. The minimum documented configuration is:
+A staging-like backend rehearsal requires a reachable PostgreSQL database and random non-production secrets. The minimum documented configuration is:
 
 ```bash
 APP_ENV=staging
-DATABASE_URL=mysql://user:password@127.0.0.1:3306/usamabhanbhro
+DATABASE_URL=postgresql://staging_app:password@127.0.0.1:5433/usamabhanbhro_staging
 JWT_SECRET=<at-least-32-random-characters>
 PAYMENT_WEBHOOK_SECRET=<at-least-32-random-characters>
 PAYMENT_MODE=mock
@@ -63,13 +69,14 @@ Apply the idempotent schema migrations and deterministic seed only against the i
 ```bash
 pnpm db:migrate
 pnpm db:seed
+pnpm db:verify
 ```
 
-The rehearsal is designed to exercise health/readiness, CORS, authorization, security headers, webhook signature rejection, inventory reservation, payment idempotency, and duplicate-event behavior. It must not use real payment credentials or real customer data.
+The rehearsal is designed to exercise PostgreSQL schema presence, JSONB payloads, transaction rollback, unique integrity indexes, concurrent inventory reservation semantics, health/readiness, CORS, authorization, security headers, webhook signature rejection, payment idempotency, and duplicate-event behavior. `SEED_RESET_INVENTORY=true` may be used only when intentionally resetting seed-owned inventory; the default preserves operational stock on reruns. It must not use real payment credentials or real customer data.
 
 ## Production-like requirements
 
-Production-like startup must fail closed when required secrets or settings are missing. Before a production claim can be made, the deployment must provide managed secret storage, a managed MySQL/MariaDB service, an official payment adapter, registered OAuth credentials, an administrative `OWNER_OPEN_ID`, S3-compatible storage, TLS, DNS, edge controls, distributed rate limiting, monitoring, alerting, and encrypted backup/restore evidence.
+Production-like startup must fail closed when required secrets or settings are missing. Before a production claim can be made, the deployment must provide managed secret storage, a managed PostgreSQL service, an official payment adapter, registered OAuth credentials, an administrative `OWNER_OPEN_ID`, S3-compatible storage, TLS, DNS, edge controls, distributed rate limiting, monitoring, alerting, and encrypted backup/restore evidence.
 
 The production payment mode must not be enabled with the demo adapter. Mock and sandbox outcomes are deterministic rehearsal behavior and must be labeled as such.
 
@@ -103,8 +110,8 @@ The project remains **CLIENT DEMO READY** until these production prerequisites a
 
 The GitHub Pages frontend can target a separately deployed staging API through the public `VITE_API_BASE_URL` build variable. This value is an origin such as `https://staging-api.example.com`; it contains no secret and is safe to expose in the browser bundle. The API constructs OAuth callback URLs and all catalog/admin requests from this origin.
 
-A staging server must set `APP_ENV=staging` and `NODE_ENV=production`. In that mode, startup validation requires a dedicated `DATABASE_URL`, strong `JWT_SECRET` and `PAYMENT_WEBHOOK_SECRET` values, exact `FRONTEND_ORIGIN`/`ALLOWED_ORIGINS`, and the complete `S3_*` object-storage contract. `GET /ready` checks both MariaDB/MySQL reachability and the configured object-storage bucket. The server returns `503` rather than presenting a persistent CMS when either dependency is unavailable.
+A staging server must set `APP_ENV=staging` and `NODE_ENV=production`. In that mode, startup validation requires a dedicated `DATABASE_URL`, strong `JWT_SECRET` and `PAYMENT_WEBHOOK_SECRET` values, exact `FRONTEND_ORIGIN`/`ALLOWED_ORIGINS`, and the complete `S3_*` object-storage contract. `GET /ready` checks both PostgreSQL reachability and the configured object-storage bucket. The server returns `503` rather than presenting a persistent CMS when either dependency is unavailable.
 
-The S3-compatible adapter accepts only bounded image uploads under the `merchant/` namespace. Uploads are requested through server-guarded presigned URLs; storage credentials never reach the browser. The local rehearsal configuration in [`docker-compose.staging.yml`](../docker-compose.staging.yml) uses isolated MariaDB and MinIO volumes and must not share production data or credentials.
+The S3-compatible adapter accepts only bounded image uploads under the `merchant/` namespace. Uploads are requested through server-guarded presigned URLs; storage credentials never reach the browser. The local rehearsal configuration in [`docker-compose.staging.yml`](../docker-compose.staging.yml) uses isolated PostgreSQL and MinIO volumes and must not share production data or credentials.
 
 The development/test demo-owner login is intentionally unavailable in staging and production. A real staging OAuth client and callback at `<STAGING_API_ORIGIN>/api/oauth/callback` must be provisioned manually. No staging hosting provider, database, object-storage account, or OAuth credential is connected in the current session; see [`staging-deployment.md`](staging-deployment.md) for the exact provisioning sequence.

@@ -9,8 +9,6 @@ import { canTransitionInventory, canTransitionPayment } from "./orderState";
 
 const memoryOrders = new Map<string, DemoOrder>();
 const memoryPayments = new Map<string, DemoPayment>();
-function resultHeader(value: unknown): { affectedRows?: number; insertId?: number } { return Array.isArray(value) ? ((value[0] ?? {}) as { affectedRows?: number; insertId?: number }) : (value as { affectedRows?: number; insertId?: number }); }
-
 function resolveProduct(productId: string) { return products.find((p) => p.id === productId || p.slug === productId) ?? findProduct(productId); }
 function calculate(lines: Array<{ product: ReturnType<typeof resolveProduct>; quantity: number; variant?: string }>) {
   const resolved = lines.map(({ product, quantity, variant }) => {
@@ -53,12 +51,11 @@ export const CommerceService = {
     }
     const result = await db.transaction(async (tx) => {
       for (const line of pricing.resolved) {
-        const updated = await tx.update(catalogProducts).set({ stock: sql`${catalogProducts.stock} - ${line.quantity}` }).where(and(eq(catalogProducts.productKey, line.productId), eq(catalogProducts.status, "active"), sql`${catalogProducts.stock} >= ${line.quantity}`));
-        if (Number(resultHeader(updated).affectedRows ?? 0) !== 1) throw new Error("One or more products went out of stock. Please review your bag.");
+        const updated = await tx.update(catalogProducts).set({ stock: sql`${catalogProducts.stock} - ${line.quantity}` }).where(and(eq(catalogProducts.productKey, line.productId), eq(catalogProducts.status, "active"), sql`${catalogProducts.stock} >= ${line.quantity}`)).returning({ productKey: catalogProducts.productKey }); if (updated.length !== 1) throw new Error("One or more products went out of stock. Please review your bag.");
       }
       const orderNumber = `UB-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-      const inserted = await tx.insert(orders).values({ orderNumber, userId: Number(userId) || null, email, subtotalPkr: pricing.subtotalPkr, shippingPkr: pricing.shippingPkr, discountPkr: pricing.discountPkr, totalPkr: pricing.totalPkr, shippingAddress: address, paymentStatus: "pending", fulfillmentStatus: "pending", inventoryStatus: "reserved", demoMode: true });
-      const id = Number(resultHeader(inserted).insertId ?? 0);
+      const [inserted] = await tx.insert(orders).values({ orderNumber, userId: Number(userId) || null, email, subtotalPkr: pricing.subtotalPkr, shippingPkr: pricing.shippingPkr, discountPkr: pricing.discountPkr, totalPkr: pricing.totalPkr, shippingAddress: address, paymentStatus: "pending", fulfillmentStatus: "pending", inventoryStatus: "reserved", demoMode: true }).returning({ id: orders.id });
+      const id = Number(inserted?.id ?? 0);
       await tx.insert(orderItems).values(pricing.resolved.map((line) => ({ orderId: id, productKey: line.productId, productName: line.productName, variant: line.variant ?? null, quantity: line.quantity, unitPricePkr: line.unitPricePkr, imageUrl: line.imageUrl })));
       return { id, orderNumber };
     });
@@ -79,11 +76,11 @@ export const CommerceService = {
     const orderRows = await db.select().from(orders).where(eq(orders.orderNumber, orderId)).limit(1); const order = orderRows[0]; if (!order || (order.userId != null && String(order.userId) !== userId)) throw new Error("Order was not found for this account.");
     const result = await createPaymentProvider(method).initializePayment({ orderId, amountPkr: order.totalPkr, idempotencyKey, outcome });
     return db.transaction(async (tx) => {
-      const inserted = await tx.insert(paymentAttempts).values({ orderId: order.id, provider: method, amountPkr: order.totalPkr, status: result.status, referenceId: result.referenceId, idempotencyKey, providerMetadata: result.providerMetadata });
+      const [inserted] = await tx.insert(paymentAttempts).values({ orderId: order.id, provider: method, amountPkr: order.totalPkr, status: result.status, referenceId: result.referenceId, idempotencyKey, providerMetadata: result.providerMetadata }).returning({ id: paymentAttempts.id });
       if (result.status === "successful") await transitionInventory(tx, order.id, "committed");
       if (result.status === "failed" || result.status === "cancelled") await transitionInventory(tx, order.id, "released");
       await tx.update(orders).set({ paymentStatus: result.status }).where(eq(orders.id, order.id));
-      return { id: String(resultHeader(inserted).insertId ?? 0), orderId, provider: method, amountPkr: order.totalPkr, status: result.status, referenceId: result.referenceId, idempotencyKey, message: result.message, providerMetadata: result.providerMetadata, createdAt: Date.now() };
+      return { id: String(inserted?.id ?? 0), orderId, provider: method, amountPkr: order.totalPkr, status: result.status, referenceId: result.referenceId, idempotencyKey, message: result.message, providerMetadata: result.providerMetadata, createdAt: Date.now() };
     });
   },
 

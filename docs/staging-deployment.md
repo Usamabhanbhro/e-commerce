@@ -13,7 +13,7 @@ GitHub Pages frontend
         v
 Dedicated Express API container
         |
-        +--> Dedicated staging MariaDB/MySQL
+        +--> Dedicated staging PostgreSQL database
         |
         +--> Dedicated S3-compatible object storage
 ```
@@ -25,7 +25,7 @@ The public GitHub Pages site remains a static storefront/demo shell. The authent
 | File | Purpose |
 | --- | --- |
 | `Dockerfile` | Multi-stage Node 22 image that installs production dependencies and runs the existing Express build. |
-| `docker-compose.staging.yml` | Local-only rehearsal topology with isolated MariaDB and MinIO volumes. It is not a production deployment. |
+| `docker-compose.staging.yml` | Local-only rehearsal topology with isolated PostgreSQL and MinIO volumes. It is not a production deployment. |
 | `.env.example` | Complete placeholder contract for API, database, OAuth, payment mode, CORS, and object storage. |
 | `server/storage.ts` | Server-only S3-compatible adapter with presigned uploads, retrieval, bucket readiness, and image validation. |
 | `client/src/lib/api.ts` | Browser-safe API base resolver for cross-origin staging without embedding secrets. |
@@ -39,7 +39,7 @@ Create a dedicated secret group for staging. Do not reuse production values.
 | `APP_ENV` | `staging` |
 | `NODE_ENV` | `production` |
 | `PORT` | Provider-assigned port, normally `3000` inside the container. |
-| `DATABASE_URL` | Dedicated MariaDB/MySQL URL; never a production database. |
+| `DATABASE_URL` | Dedicated PostgreSQL URL; never a production database. |
 | `JWT_SECRET` | At least 32 random characters, unique to staging. |
 | `PAYMENT_WEBHOOK_SECRET` | At least 32 random characters, unique to staging. |
 | `PAYMENT_MODE` | `mock` or `sandbox`; never production credentials. |
@@ -63,7 +63,7 @@ The browser build may receive only public, non-secret values such as `VITE_API_B
 ## Manual provisioning sequence
 
 1. Create a new service or container from the repository’s `Dockerfile` using Node 22. Configure HTTPS at the hosting provider or reverse proxy, set the staging secret group, and expose the container’s port `3000`.
-2. Create a dedicated MariaDB/MySQL database and user. Restrict network access to the API service, store the connection URL as `DATABASE_URL`, and do not copy production data.
+2. Create a dedicated PostgreSQL database and user. Restrict network access to the API service, store the connection URL as `DATABASE_URL`, run the checked-in PostgreSQL migrations, and do not copy production data.
 3. Create a dedicated private object-storage bucket and credentials. Configure CORS for the API’s server-side signed URL flow and the GitHub Pages origin only. Keep public object URLs disabled unless the provider’s policy requires them; the application retrieves through the server boundary.
 4. Configure a staging OAuth application with a callback of `<STAGING_API_ORIGIN>/api/oauth/callback`. Do not reuse a production OAuth client or secret.
 5. Set `APP_ENV=staging`, `NODE_ENV=production`, `PAYMENT_MODE=mock` or sandbox, and keep `ALLOW_DEMO_LOGIN` unset/false. The server will fail startup if required persistence or storage configuration is missing.
@@ -72,6 +72,7 @@ The browser build may receive only public, non-secret values such as `VITE_API_B
    ```bash
    pnpm db:migrate
    pnpm db:seed
+   pnpm db:verify
    ```
 
    Seed only the safe demo catalog and non-sensitive test identities. Never import real customers, payment methods, or production order history.
@@ -83,6 +84,20 @@ The browser build may receive only public, non-secret values such as `VITE_API_B
    ```
 
    Publish the resulting static artifact through the existing Pages workflow. The browser will use the configured API base for catalog hydration, admin requests, OAuth redirect construction, and credentialed sessions.
+
+## Local PostgreSQL rehearsal
+
+The checked-in compose file provides isolated PostgreSQL and MinIO services for local rehearsal. From the repository root:
+
+```bash
+docker compose -f docker-compose.staging.yml up -d
+DATABASE_URL=postgresql://staging_app:replace-with-local-staging-db-password@127.0.0.1:5433/usamabhanbhro_staging pnpm db:migrate
+DATABASE_URL=postgresql://staging_app:replace-with-local-staging-db-password@127.0.0.1:5433/usamabhanbhro_staging pnpm db:seed
+DATABASE_URL=postgresql://staging_app:replace-with-local-staging-db-password@127.0.0.1:5433/usamabhanbhro_staging pnpm db:verify
+docker compose -f docker-compose.staging.yml down
+```
+
+The sandbox used for this implementation did not provide a Docker/Podman runtime, so the compose boot and container execution remain provider/runner-verifiable gates. The hosted staging validation workflow builds the image and exercises PostgreSQL migrations, seeding, and integrity checks on every relevant push.
 
 ## Readiness and API checks
 
@@ -134,4 +149,4 @@ The storage adapter accepts only image content types under the `merchant/` names
 
 ## What remains manual
 
-The repository now contains the deployment image, local rehearsal topology, environment contract, API-base wiring, fail-closed readiness checks, S3-compatible storage adapter, and documentation. **Remote hosting, staging MariaDB, staging object storage, and staging OAuth still require provider-side provisioning because no connected deployment provider or staging credentials are available in this session.**
+The repository now contains the deployment image, local rehearsal topology, PostgreSQL migration history, environment contract, API-base wiring, fail-closed readiness checks, S3-compatible storage adapter, and documentation. **Remote hosting, staging PostgreSQL, staging object storage, and staging OAuth still require provider-side provisioning because no connected deployment provider or staging credentials are available in this session.**

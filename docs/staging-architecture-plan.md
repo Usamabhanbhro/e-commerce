@@ -2,7 +2,7 @@
 
 ## Audit status
 
-This document records a **read-only architecture audit** before staging changes. No new commerce platform, authentication framework, database technology, or payment stack is introduced. The existing Express, Drizzle/MariaDB, JWT-cookie session, GitHub Pages, and explicit demo/rehearsal boundaries remain the foundation.
+This document records a **read-only architecture audit** before staging changes. Its MariaDB/MySQL persistence findings are historical and are superseded by the completed PostgreSQL migration documented in [`postgresql-migration-audit.md`](postgresql-migration-audit.md), [`postgresql-migration-plan.md`](postgresql-migration-plan.md), and [`postgresql-data-migration.md`](postgresql-data-migration.md). The existing Express, Drizzle, JWT-cookie session, GitHub Pages, and explicit demo/rehearsal boundaries remain the foundation.
 
 ## Current architecture findings
 
@@ -12,9 +12,9 @@ This document records a **read-only architecture audit** before staging changes.
 | Admin routes | `server/admin.ts` registers `/api/admin/demo-login`, `/api/admin/bootstrap`, products, categories, inventory, promotions, banners, orders, customers, staff, audit, and settings routes | Keep these routes server-owned; expose them only through the staging API origin |
 | Authentication/session | `server/auth.ts` signs an `ub_session` JWT in an HTTP-only cookie; staging uses `sameSite=none` and `secure=true` | The staging API needs HTTPS and a real `JWT_SECRET`; the browser must send credentials cross-origin |
 | RBAC | `server/admin.ts` resolves `owner`, `admin`, and `staff` server-side and applies `rolePermissions` through `guard()` | Never rely on browser navigation visibility for authorization; verify each role with API requests |
-| Database | `server/db.ts` uses `mysql2` and Drizzle; `DATABASE_URL` creates the connection pool | A dedicated staging MariaDB/MySQL URL is required; no production URL may be reused |
-| Migrations | `scripts/migrate.ts` applies idempotent SQL directly; `drizzle.config.ts` is MySQL-oriented but the repository has no tracked `drizzle/migrations` directory | Run the existing migration script against the isolated staging database; do not infer that Drizzle Kit migration files exist |
-| MariaDB/MySQL | `.env.example` and scripts require `DATABASE_URL=mysql://...`; seed requires `DATABASE_URL` | Provision a reachable MySQL-compatible staging database and run migration plus safe seed before API startup verification |
+| Database | `server/db.ts` uses `pg` and Drizzle’s node-postgres adapter; `DATABASE_URL` creates the connection pool | A dedicated staging PostgreSQL URL is required; no production URL may be reused |
+| Migrations | `scripts/migrate.ts` uses Drizzle’s PostgreSQL migrator against tracked `drizzle/migrations` artifacts | Run the PostgreSQL migration history from zero, then the deterministic seed and `db:verify` checks |
+| PostgreSQL | `.env.example` and scripts require a `postgresql://...` `DATABASE_URL`; seed and verification require the same target | Provision a reachable PostgreSQL staging database and run migrations, safe seed, and integrity verification before API startup |
 | Storage abstraction | `server/index.ts` exposes only a validated `/storage/*` lookup boundary; `vite.config.ts` contains a development-only Manus storage proxy | A real staging object-storage adapter is not currently wired into the Express API; upload/retrieval cannot be claimed complete without implementing or connecting the existing provider abstraction |
 | Media upload | Admin product forms accept image URLs; no server-side multipart upload route exists in `server/index.ts` or `server/admin.ts` | Treat media upload as a staging blocker. Do not add credentials to the browser or pretend URL entry is object-storage upload |
 | CORS | `server/security.ts` reads `ALLOWED_ORIGINS` or `FRONTEND_ORIGIN`, echoes only an allowlisted origin, enables credentials, and rejects disallowed `OPTIONS` | Set the exact Pages origin, never `*`; verify allowed/disallowed origins and preflight responses |
@@ -40,8 +40,8 @@ GitHub Pages frontend
 Dedicated staging Express API
   Node.js persistent service, APP_ENV=staging
               |
-              +--> Dedicated staging MariaDB/MySQL
-              |      migrations + safe demo seed only
+              +--> Dedicated staging PostgreSQL
+              |      migrations + safe demo seed + integrity verification
               |
               +--> Dedicated staging object storage
                      non-production bucket/prefix, private credentials
@@ -51,8 +51,8 @@ The API service must be reachable over HTTPS, support long-lived HTTP requests, 
 
 ## Required sequencing
 
-First, add fail-closed staging behavior so `APP_ENV=staging` cannot silently use the in-memory admin store and so database initialization errors are surfaced through `/ready` and API responses. Second, add a public API-base configuration seam and ensure every browser API call uses it. Third, connect the storage abstraction to a dedicated staging bucket or explicitly document the upload surface as not yet deployable. Fourth, provision the API host, database, object storage, OAuth/session credentials, and safe demo seed outside the repository. Finally, run migrations, seed, role/session/CORS/storage smoke tests, and the complete existing validation suite.
+The staging implementation now fails closed in `APP_ENV=staging`, uses a public API-base seam for cross-origin calls, connects the storage abstraction to an S3-compatible bucket contract, and provides PostgreSQL migrations, seed, and integrity verification. The remaining sequence is provider-side provisioning of the API host, PostgreSQL database, object storage, OAuth/session credentials, and safe demo seed, followed by role/session/CORS/storage smoke tests against those real staging services.
 
 ## Explicit non-claims
 
-No remote staging API, staging database, object-storage bucket, OAuth tenant, payment sandbox, or deployment provider is currently connected or verified by this audit. Therefore this repository is **staging-prepared only**, not staging-deployed. The existing GitHub Pages site remains a public static demo and must not be described as an operational merchant backend.
+No remote staging API, staging PostgreSQL database, object-storage bucket, OAuth tenant, payment sandbox, or deployment provider is currently connected or verified by this audit. Therefore this repository is **staging-prepared only**, not staging-deployed. The existing GitHub Pages site remains a public static demo and must not be described as an operational merchant backend.

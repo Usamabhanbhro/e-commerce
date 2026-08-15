@@ -1,0 +1,9 @@
+# PostgreSQL visual validation notes
+
+The PostgreSQL-backed Playwright rerun passed 57 of 60 browser tests. The two CMS tests and the API security/catalog checks passed after pointing the local production-artifact server at the fresh PostgreSQL database. Three visual snapshots remain mismatched: `home-desktop`, `home-mobile`, and `product-mobile`.
+
+The home desktop actual and expected captures have identical overall dimensions (1440 × 6383) and the same storefront structure, typography, footer, and section layout. The visible difference is catalog image/product ordering and the resulting content flow: the actual capture shows a different first product in the “New objects, considered.” row and image-backed content appears where the expected baseline has empty reserved space. This is visual/catalog data drift, not a PostgreSQL connection or API failure. The mobile failures likewise report changed page heights and image/content differences. No visual snapshots have been overwritten; the mismatch remains to be reviewed against the intended current catalog source before any baseline update.
+
+Generated test artifacts remain untracked and are not release evidence until reviewed.
+
+A second comparison after canonical collection preservation shows the home desktop header, hero, product row, split feature panel, typography, section boundaries, and footer remain aligned with the committed baseline. The remaining mismatch is concentrated in lower merchandising image/content blocks: the actual capture renders additional image tiles and associated content where the baseline contains reserved empty space. This confirms the remaining visual issue is caused by the current server-backed catalog/content hydration and not by PostgreSQL layout, transaction, or CMS failures. The browser suite still passes all non-visual coverage (57 tests); visual snapshot updates or a deliberate catalog-display compatibility adjustment remain a separate product decision.

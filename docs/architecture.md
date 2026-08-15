@@ -7,7 +7,7 @@ Usamabhanbhro E-Commerce is a reconstructed release candidate prepared for clien
 The system has two intentionally separate delivery surfaces:
 
 1. A browser storefront that can be built as static assets and deployed to GitHub Pages.
-2. A Node/Express API and durable commerce boundary that can run against MySQL/MariaDB in a staging-like or future production environment.
+2. A Node/Express API and durable commerce boundary that runs against PostgreSQL in a staging-like or future production environment.
 
 GitHub Pages hosts only the first surface. It is not the production backend, database, payment gateway, OAuth provider, file store, or operations platform.
 
@@ -18,7 +18,7 @@ flowchart TB
   User[Client or reviewer browser]
   Pages[GitHub Pages\nstatic frontend]
   API[Express API\nseparate runtime]
-  DB[(MySQL/MariaDB)]
+  DB[(PostgreSQL)]
   OAuth[OAuth provider\nexternal prerequisite]
   Provider[Official payment provider\nexternal prerequisite]
   Storage[S3-compatible storage\nexternal prerequisite]
@@ -105,7 +105,7 @@ The current demo payment modes are deterministic and provider-agnostic. The name
 
 ## Database
 
-Drizzle ORM maps the MySQL/MariaDB schema defined in `drizzle/schema.ts`. The schema includes the following principal tables:
+Drizzle ORM maps the PostgreSQL schema defined in `drizzle/schema.ts`, using `pg` and Drizzle’s node-postgres adapter. The schema includes the following principal tables:
 
 | Table | Responsibility |
 | --- | --- |
@@ -119,8 +119,13 @@ Drizzle ORM maps the MySQL/MariaDB schema defined in `drizzle/schema.ts`. The sc
 | `saved_cart_lines` | Durable saved cart lines |
 | `wishlist_items` | Customer wishlist entries |
 | `customer_addresses` | Customer delivery addresses |
+| `admin_categories` | Merchant taxonomy and category management |
+| `admin_promotions` | Promotion definitions and lifecycle |
+| `admin_banners` | Homepage merchandising banners |
+| `inventory_adjustments` | Auditable stock adjustments |
+| `admin_audit_events` | Merchant activity audit trail |
 
-The repository includes idempotent migrations and a deterministic seed path. The documented rehearsal seeds 36 products and 8 collections. The database rehearsal also exercises concurrent inventory reservations, payment idempotency, webhook replay protection, and failed-payment stock restoration.
+The repository includes tracked PostgreSQL migrations, an atomic deterministic seed path, and a PostgreSQL integration verifier. The documented rehearsal seeds 36 products and 8 collections. The database verification exercises JSONB payloads, transaction rollback, unique integrity indexes, concurrent inventory reservations, payment idempotency, webhook replay protection, and failed-payment stock restoration.
 
 ## Security controls
 
@@ -153,7 +158,7 @@ flowchart LR
   G --> H[GitHub Pages\nhttps://usamabhanbhro.github.io/e-commerce/]
 
   I[Separate staging/production runtime] --> J[Node + Express API]
-  J --> K[(Managed MySQL/MariaDB)]
+  J --> K[(Managed PostgreSQL)]
   J --> L[Official payment adapter]
   J --> M[OAuth and S3 prerequisites]
 ```
