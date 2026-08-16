@@ -10,7 +10,7 @@ type ServerPromotion = { id: string; name: string; description: string; discount
 type ServerBanner = { id: string; imageUrl: string; title: string; subtitle: string; ctaText: string; destination: string; status: string; sortOrder: number };
 
 type CommerceContextValue = {
-  cart: CartLine[]; wishlist: string[]; lastOrder: DemoOrder | null; products: Product[]; collections: typeof seedCollections; journals: typeof seedJournals; categories: ServerCategory[]; promotions: ServerPromotion[]; banners: ServerBanner[]; catalogLoading: boolean;
+  cart: CartLine[]; wishlist: string[]; lastOrder: DemoOrder | null; products: Product[]; collections: typeof seedCollections; journals: typeof seedJournals; categories: ServerCategory[]; promotions: ServerPromotion[]; banners: ServerBanner[]; catalogLoading: boolean; catalogError: boolean;
   addToCart: (product: Product, quantity?: number, variant?: string) => void; removeFromCart: (productId: string) => void; setQuantity: (productId: string, quantity: number) => void; toggleWishlist: (productId: string) => void; clearCart: () => void; createOrder: (order: DemoOrder) => void; refreshCatalog: () => Promise<void>; cartCount: number; subtotal: number;
 };
 
@@ -26,8 +26,8 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartLine[]>(() => read("usamabhanbhro-cart", []));
   const [wishlist, setWishlist] = useState<string[]>(() => read("usamabhanbhro-wishlist", []));
   const [lastOrder, setLastOrder] = useState<DemoOrder | null>(() => read("usamabhanbhro-order", null));
-  const [catalog, setCatalog] = useState<Product[]>(seedProducts); const [categories, setCategories] = useState<ServerCategory[]>([]); const [promotions, setPromotions] = useState<ServerPromotion[]>([]); const [banners, setBanners] = useState<ServerBanner[]>([]); const [catalogLoading, setCatalogLoading] = useState(true);
-  const refreshCatalog = async () => { try { const response = await fetch(apiUrl("/api/catalog"), { credentials: "include" }); if (!response.ok) throw new Error("catalog unavailable"); const data = await response.json() as { products?: ServerProduct[]; categories?: ServerCategory[]; promotions?: ServerPromotion[]; banners?: ServerBanner[] }; if (data.products?.length) setCatalog(data.products.map(mergeServerProduct)); setCategories(data.categories ?? []); setPromotions(data.promotions ?? []); setBanners(data.banners ?? []); } catch { setCatalog(seedProducts); } finally { setCatalogLoading(false); } };
+  const [catalog, setCatalog] = useState<Product[]>(seedProducts); const [categories, setCategories] = useState<ServerCategory[]>([]); const [promotions, setPromotions] = useState<ServerPromotion[]>([]); const [banners, setBanners] = useState<ServerBanner[]>([]); const [catalogLoading, setCatalogLoading] = useState(true); const [catalogError, setCatalogError] = useState(false);
+  const refreshCatalog = async () => { setCatalogLoading(true); setCatalogError(false); try { const response = await fetch(apiUrl("/api/catalog"), { credentials: "include" }); if (!response.ok) throw new Error("catalog unavailable"); const data = await response.json() as { products?: ServerProduct[]; categories?: ServerCategory[]; promotions?: ServerPromotion[]; banners?: ServerBanner[] }; if (data.products?.length) setCatalog(data.products.map(mergeServerProduct)); setCategories(data.categories ?? []); setPromotions(data.promotions ?? []); setBanners(data.banners ?? []); } catch { setCatalog(seedProducts); setCatalogError(true); } finally { setCatalogLoading(false); } };
   useEffect(() => { void refreshCatalog(); }, []);
   useEffect(() => localStorage.setItem("usamabhanbhro-cart", JSON.stringify(cart)), [cart]);
   useEffect(() => localStorage.setItem("usamabhanbhro-wishlist", JSON.stringify(wishlist)), [wishlist]);
@@ -37,7 +37,7 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
   const setQuantity = (id: string, quantity: number) => setCart((current) => quantity < 1 ? current.filter((line) => line.product.id !== id) : current.map((line) => line.product.id === id ? { ...line, quantity } : line));
   const toggleWishlist = (id: string) => setWishlist((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const subtotal = cart.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
-  const value = useMemo(() => ({ cart, wishlist, lastOrder, products: catalog, collections: seedCollections, journals: seedJournals, categories, promotions, banners, catalogLoading, addToCart, removeFromCart, setQuantity, toggleWishlist, clearCart: () => setCart([]), createOrder: setLastOrder, refreshCatalog, cartCount: cart.reduce((sum, line) => sum + line.quantity, 0), subtotal }), [cart, wishlist, lastOrder, catalog, categories, promotions, banners, catalogLoading, subtotal]);
+  const value = useMemo(() => ({ cart, wishlist, lastOrder, products: catalog, collections: seedCollections, journals: seedJournals, categories, promotions, banners, catalogLoading, catalogError, addToCart, removeFromCart, setQuantity, toggleWishlist, clearCart: () => setCart([]), createOrder: setLastOrder, refreshCatalog, cartCount: cart.reduce((sum, line) => sum + line.quantity, 0), subtotal }), [cart, wishlist, lastOrder, catalog, categories, promotions, banners, catalogLoading, catalogError, subtotal]);
   return <CommerceContext.Provider value={value}>{children}</CommerceContext.Provider>;
 }
 

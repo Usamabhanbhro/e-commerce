@@ -1,0 +1,7 @@
+# Storefront visual QA findings
+
+The current homepage desktop artifact remains visually coherent with the existing editorial identity: warm paper background, restrained black header/footer, serif display type, quiet borders, and image-led product storytelling. The visible mismatch versus the prior baseline is intentional and attributable to the audit hardening work: the privacy/cookie notice is present, the footer now includes newsletter, grouped trust/service links, and mobile accordion controls, and the product cards include additional availability/promotion semantics. No unintended horizontal overflow or broken layout was observed in the representative desktop artifact.
+
+The current contact mobile artifact preserves the compact header, single-column editorial rhythm, readable form labels, studio information card, newsletter, and collapsed footer groups. The cookie notice is legible and actionable at 390px, although it intentionally adds vertical content. The visual regression differences should therefore be treated as intentional baseline updates for the storefront-only audit changes rather than source regressions.
+
+The product-mobile diff shows the intended sticky mobile purchase bar replacing a missing mobile conversion affordance; the rest of the product page, footer, imagery, pricing, and editorial layout remain coherent. Only the product-mobile baseline requires regeneration for this targeted change.

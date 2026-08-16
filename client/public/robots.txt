@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /search
+
+Sitemap: https://usamabhanbhro.github.io/e-commerce/sitemap.xml

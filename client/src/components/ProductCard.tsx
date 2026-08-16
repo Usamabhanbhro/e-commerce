@@ -2,6 +2,7 @@
 import { Link } from "wouter";
 import { useCommerce } from "@/lib/commerce";
 import { money, type Product } from "@/lib/catalog";
+import { trackEvent } from "@/lib/analytics";
 
 export function ProductCard({ product }: { product: Product }) {
   const { wishlist, toggleWishlist } = useCommerce();
@@ -13,10 +14,10 @@ export function ProductCard({ product }: { product: Product }) {
         <img className="catalog-card__hover material-image" src={product.images[1]} alt="" loading="lazy" />
       </Link>
       <span className="material-mark" aria-hidden="true">Material study</span>
-      <button className={`wishlist-button ${saved ? "is-saved" : ""}`} onClick={() => toggleWishlist(product.id)} aria-pressed={saved} aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}>{saved ? "♥" : "♡"}</button>
+      <button className={`wishlist-button ${saved ? "is-saved" : ""}`} onClick={() => { toggleWishlist(product.id); trackEvent(saved ? "wishlist_remove" : "wishlist_add", { product_id: product.id }); }} aria-pressed={saved} aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}>{saved ? "♥" : "♡"}</button>
       <Link className="catalog-card__quick" href={`/products/${product.slug}`}>View piece ↗</Link>
     </div>
-    <div className="catalog-card__meta"><div><p className="eyebrow eyebrow--rust">{product.category} · {product.collection}</p><h3><Link href={`/products/${product.slug}`}>{product.name}</Link></h3></div><strong>{money(product.price)}</strong></div>
+    <div className="catalog-card__meta"><div><p className="eyebrow eyebrow--rust">{product.category} · {product.collection}</p><h3><Link href={`/products/${product.slug}`}>{product.name}</Link></h3><span className={`catalog-card__availability catalog-card__availability--${product.availability}`}>{product.availability === "low-stock" ? "Low stock" : "Available"}</span></div><div className="catalog-card__price"><strong>{money(product.price)}</strong>{product.compareAtPrice && product.compareAtPrice > product.price && <del>{money(product.compareAtPrice)}</del>}</div></div>
   </article>;
 }
 
